@@ -1,0 +1,317 @@
+{
+  "services": [{
+    "name": "mysql",
+    "id": "8780d398a0104696bb0d78ea6511fa95",
+    "description": "提供mysql服务",
+    "tags": [],
+    "bindable": true,
+    "metadata": {
+      "provider": {
+        "name": "Bonc",
+        "description": ""
+      },
+      "description": "",
+      "display_name": "Mysql",
+      "image_url": "图片地址"
+    },
+    "dashboard_client": {
+      "redirect_uri": null
+    },
+    "plan_updateable": false,
+    "plan": [{
+      "name": "MS",
+      "id": "aee3dab88cf94d3aa2fdf8155e56750e",
+      "description": "mysql服务，MS模式",
+      "free": true,
+      "schemas": {
+        "service_instance": {
+          "create": {
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "type": "array",
+              "properties": [{
+                "variable": "version",
+                "label": "版本号",
+                "description": "mysql 版本号",
+                "required": true,
+                "default": 5.7,
+                "type": "enum",
+                "options": [5.6,
+                  5.7,
+                  8.0]
+              },
+                {
+                  "variable": "serviceName",
+                  "label": "服务名称",
+                  "description": "mysql集群名称",
+                  "required": true,
+                  "default": null,
+                  "type": "String"
+                },
+                {
+                  "variable": "cpu",
+                  "label": "CPU(核)",
+                  "description": "CPU 核数",
+                  "required": true,
+                  "default": 0.5,
+                  "type": "float"
+                },
+                {
+                  "variable": "memory",
+                  "label": "内存(G)",
+                  "description": "内存",
+                  "required": true,
+                  "default": 2,
+                  "type": "float"
+                },
+                {
+                  "variable": "capacity",
+                  "label": "存储(G)",
+                  "description": "mysql 单实例存储大小",
+                  "required": true,
+                  "default": 20,
+                  "type": "float"
+                },
+                {
+                  "variable": "replicas",
+                  "label": "副本数",
+                  "description": "mysql 副本数",
+                  "required": true,
+                  "default": 2,
+                  "type": "enum",
+                  "options": [2,
+                    3,
+                    4]
+                }
+              ]
+            }
+          },
+          "update": {
+            "parameters": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "type": "array",
+              "properties": [{
+                "variable": "cpu",
+                "label": "CPU(核)",
+                "description": "CPU 核数",
+                "required": true,
+                "default": 0.5,
+                "type": "float"
+              },
+                {
+                  "variable": "memory",
+                  "label": "内存(G)",
+                  "description": "内存",
+                  "required": true,
+                  "default": 2,
+                  "type": "float"
+                },
+                {
+                  "variable": "capacity",
+                  "label": "存储(G)",
+                  "description": "mysql 单实例存储大小",
+                  "required": true,
+                  "default": 20,
+                  "type": "float"
+                },
+                {
+                  "variable": "replicas",
+                  "label": "副本数",
+                  "description": "mysql 副本数",
+                  "required": true,
+                  "default": 2,
+                  "type": "enum",
+                  "options": [2,
+                    3,
+                    4]
+                }
+              ]
+            }
+          }
+        }
+      }
+    },
+      {
+        "name": "SINGLE",
+        "id": "f0dfb49f91cf42af871cd06d8f7887dd",
+        "description": "mysql服务，SINGLE模式",
+        "free": true,
+        "schemas": {
+          "service_instance": {
+            "create": {
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "array",
+                "properties": [{
+                  "variable": "serviceName",
+                  "label": "服务名称",
+                  "description": "mysql集群名称",
+                  "required": true,
+                  "default": null,
+                  "type": "String"
+                },
+                  {
+                    "variable": "version",
+                    "label": "版本号",
+                    "description": "mysql 版本号",
+                    "required": true,
+                    "default": "5.7",
+                    "type": "enum",
+                    "options": [5.6,
+                      5.7,
+                      8.0]
+                  },
+                  {
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "CPU 核数",
+                    "required": true,
+                    "default": null,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存",
+                    "required": true,
+                    "default": null,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小",
+                    "required": true,
+                    "default": null,
+                    "type": "float"
+                  }
+                ]
+              }
+            },
+            "update": {
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "array",
+                "properties": [{
+                  "variable": "cpu",
+                  "label": "CPU(核)",
+                  "description": "CPU 核数",
+                  "required": true,
+                  "default": null,
+                  "type": "float"
+                },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存",
+                    "required": true,
+                    "default": null,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小",
+                    "required": true,
+                    "default": null,
+                    "type": "float"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        "name": "MM",
+        "id": "17f5165d737e4742a6a2f368f0e632d6",
+        "description": "mysql服务，MM模式",
+        "free": true,
+        "schemas": {
+          "service_instance": {
+            "create": {
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "array",
+                "properties": [{
+                  "variable": "serviceName",
+                  "label": "服务名称",
+                  "description": "mysql集群名称",
+                  "required": true,
+                  "default": null,
+                  "type": "String"
+                },
+                  {
+                    "variable": "version",
+                    "label": "版本号",
+                    "description": "mysql 版本号",
+                    "required": true,
+                    "default": "5.7",
+                    "type": "enum",
+                    "options": [5.6,
+                      5.7,
+                      8.0]
+                  },
+                  {
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "CPU 核数",
+                    "required": true,
+                    "default": 0.5,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存",
+                    "required": true,
+                    "default": 2,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小",
+                    "required": true,
+                    "default": 20,
+                    "type": "float"
+                  }
+                ]
+              }
+            },
+            "update": {
+              "parameters": {
+                "$schema": "http://json-schema.org/draft-04/schema#",
+                "type": "array",
+                "properties": [{
+                  "variable": "cpu",
+                  "label": "CPU(核)",
+                  "description": "CPU 核数",
+                  "required": true,
+                  "default": 0.5,
+                  "type": "float"
+                },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存",
+                    "required": true,
+                    "default": 2,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小",
+                    "required": true,
+                    "default": 20,
+                    "type": "float"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }]
+  }]
+}
