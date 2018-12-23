@@ -1,0 +1,68 @@
+apiVersion: v1
+kind: ReplicationController
+metadata:
+  name: bonc-broker
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    app: bonc-broker
+  template:
+    metadata:
+      labels:
+        app: bonc-broker
+    spec:
+        containers:
+        - name: bonc-broker
+          image: 172.16.3.50:5000/bonc-broker
+          imagePullPolicy: Always
+          resources:
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          ports:
+          - containerPort: 8080
+          volumeMounts:
+          - mountPath: /opt/bonc-broker
+            name: bonc-broker-log
+
+        - name: bonc-broker-mysql
+          image: 172.16.3.50:5000/mysql:5.7
+          imagePullPolicy: Always
+          env:
+          - name: MYSQL_ROOT_PASSWORD
+            value: "123456"
+          resources:
+             limits:
+               cpu: "1"
+               memory: 1Gi
+          ports:
+          - containerPort: 3306
+          volumeMounts:
+          - mountPath: /var/lib/mysql
+            name: bonc-broker-mysql
+        volumes:
+        - name: bonc-broker-log
+          hostPath:
+            path: /opt/bonc-broker
+        - name: bonc-broker-mysql
+          hostPath:
+            path: /opt/bonc-broker-mysql
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: bonc-broker
+  namespace: default
+spec:
+  ports:
+  - name: bonc-broker
+    port: 8080
+    targetPort: 8080
+  selector:
+    app: bonc-broker
+  type: NodePort
+
+---

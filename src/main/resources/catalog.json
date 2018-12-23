@@ -1,0 +1,731 @@
+{
+  "services": [
+    {
+      "name": "mysql",
+      "id": "8780d398-a010-4696-bb0d-78ea6511fa95",
+      "description": "MySQL is one of the most popular database servers in the world. Notable users include Wikipedia, Facebook and Google.",
+      "tags": ["MySQL"],
+      "bindable": true,
+      "metadata": {
+        "provider": {
+          "name": "chinaUnioncom",
+          "description": "中国联合网络通信有限责任公司"
+        },
+        "display_name": "mysql service",
+        "image_url": "https://labs.mysql.com/common/logos/mysql-logo.svg"
+      },
+      "plan_updateable": false,
+      "plan": [{
+        "name": "ms",
+        "id": "aee3dab8-8cf9-4d3a-a2fd-f8155e56750e",
+        "description": "mysql服务，MS模式",
+        "free": false,
+        "metadata": {
+          "costs": [{
+            "free_quota": 50,
+            "price": 12.00,
+            "unit": "month",
+            "description": "50G免费，超出部分1G12元"
+          }]
+        },
+        "schemas": {
+          "service_instance": {
+            "create": {
+              "parameters": {
+                "properties": [{
+                  "variable": "serviceName",
+                  "label": "服务名称",
+                  "description": "mysql集群名称;(6,16位小写字母开头，小写字母或者数字组成的服务名称)",
+                  "required": true,
+                  "default": null,
+                  "type": "string"
+                },
+                  {
+                    "variable": "replicas",
+                    "label": "副本数",
+                    "description": "mysql 副本数",
+                    "required": true,
+                    "default": 2,
+                    "type": "enum",
+                    "options": [2,
+                      3,
+                      4]
+                  },
+                  {
+                    "variable": "version",
+                    "label": "版本号",
+                    "description": "mysql 版本号",
+                    "required": true,
+                    "default": 5.7,
+                    "type": "enum",
+                    "options": [5.6,
+                      5.7,
+                      8.0]
+                  },
+                  {
+                    "variable": "password",
+                    "label": "密码",
+                    "description": "mysql 密码(6-16位以字母、数字组合的密码)",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                  {
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "CPU 核数(必须是1-16之间的数字)",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存(必须是1-1024之间的数字)",
+                    "required": true,
+                    "default": 2,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                    "required": true,
+                    "default": 20,
+                    "type": "float"
+                  }]
+              }
+            },
+            "update": {
+              "parameters": {
+                "properties": [{
+                  "variable": "cpu",
+                  "label": "CPU(核)",
+                  "description": "CPU 核数(必须是1-16之间的数字)",
+                  "required": true,
+                  "default": 1,
+                  "type": "float"
+                },
+                  {
+                    "variable": "memory",
+                    "label": "内存(G)",
+                    "description": "内存(必须是1-1024之间的数字)",
+                    "required": true,
+                    "default": 2,
+                    "type": "float"
+                  },
+                  {
+                    "variable": "capacity",
+                    "label": "存储(G)",
+                    "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                    "required": true,
+                    "default": 20,
+                    "type": "float"
+                  }]
+              }
+            }
+          },
+          "service_binding": {
+            "create": {
+              "parameters": {
+                "properties": []
+              }
+            }
+          }
+        }
+      },
+        {
+          "name": "single",
+          "id": "f0dfb49f-91cf-42af-871c-d06d8f7887dd",
+          "description": "mysql单实例服务, 支持读写",
+          "free": false,
+          "metadata": {
+            "costs": [{
+              "free_quota": 50,
+              "price": 12.00,
+              "unit": "month",
+              "description": "50G免费，超出部分1G12元"
+            }]
+          },
+          "schemas": {
+            "service_instance": {
+              "create": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "serviceName",
+                    "label": "服务名称",
+                    "description": "mysql集群名称",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                    {
+                      "variable": "version",
+                      "label": "版本号",
+                      "description": "mysql 版本号",
+                      "required": true,
+                      "default": 5.7,
+                      "type": "enum",
+                      "options": [5.6,
+                        5.7,
+                        8.0]
+                    },
+                    {
+                      "variable": "password",
+                      "label": "密码",
+                      "description": "mysql 密码(6-16位以字母、数字组合的密码)",
+                      "required": true,
+                      "default": null,
+                      "type": "string"
+                    },
+                    {
+                      "variable": "cpu",
+                      "label": "CPU(核)",
+                      "description": "CPU 核数(必须是1-16之间的数字)",
+                      "required": true,
+                      "default": 1,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存(必须是1-1024之间的数字)",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              },
+              "update": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "CPU 核数(必须是1-16之间的数字)",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存(必须是1-1024之间的数字)",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              }
+            },
+            "service_binding": {
+              "create": {
+                "parameters": {
+                  "properties": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "mm",
+          "id": "17f5165d-737e-4742-a6a2-f368f0e632d6",
+          "description": "mysql服务，双master模式",
+          "free": false,
+          "metadata": {
+            "costs": [{
+              "free_quota": 50,
+              "price": 12.00,
+              "unit": "month",
+              "description": "50G免费，超出部分1G12元"
+            }]
+          },
+          "schemas": {
+            "service_instance": {
+              "create": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "serviceName",
+                    "label": "服务名称",
+                    "description": "mysql集群名称",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                    {
+                      "variable": "version",
+                      "label": "版本号",
+                      "description": "mysql 版本号",
+                      "required": true,
+                      "default": "5.7",
+                      "type": "enum",
+                      "options": [5.6,
+                        5.7,
+                        8.0]
+                    },
+                    {
+                      "variable": "password",
+                      "label": "密码",
+                      "description": "mysql 密码(6-16位以字母、数字组合的密码)",
+                      "required": true,
+                      "default": null,
+                      "type": "string"
+                    },
+                    {
+                      "variable": "cpu",
+                      "label": "CPU(核)",
+                      "description": "CPU 核数(必须是1-16之间的数字)",
+                      "required": true,
+                      "default": 1,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存(必须是1-1024之间的数字)",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              },
+              "update": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "CPU 核数(必须是1-16之间的数字)",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存(必须是1-1024之间的数字)",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "mysql 单实例存储大小(必须是1-2048之间的数字)",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              }
+            },
+            "service_binding": {
+              "create": {
+                "parameters": {
+                  "properties": []
+                }
+              }
+            }
+          }
+        }]
+    },
+    {
+      "name": "redis",
+      "id": "764ad650-e6cf-4855-9ab5-51820afa3515",
+      "description": "Redis is an advanced key-value cache and store. It is often referred to as a data structure server since keys can contain strings, hashes, lists, sets, sorted sets, bitmaps and hyperloglogs.",
+      "tags": ["Redis"],
+      "bindable": true,
+      "metadata": {
+        "provider": {
+          "name": "chinaUnioncom",
+          "description": "中国联合网络通信有限责任公司"
+        },
+        "display_name": "redis service",
+        "image_url": "https://redis.io/images/redis.png"
+      },
+      "plan_updateable": false,
+      "plan": [
+        {
+          "name": "single",
+          "id": "64002283-77a5-40f3-859d-d37a6d202bc3",
+          "description": "redis服务，SINGLE模式，支持读写",
+          "free": false,
+          "metadata": {
+            "costs": [{
+              "free_quota": 50,
+              "price": 12.00,
+              "unit": "month",
+              "description": "50G免费，超出部分1G12元"
+            }]
+          },
+          "schemas": {
+            "service_instance": {
+              "create": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "serviceName",
+                    "label": "服务名称",
+                    "description": "redis集群名称",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                    {
+                      "variable": "version",
+                      "label": "版本号",
+                      "description": "redis 版本号",
+                      "required": true,
+                      "default": "3.2.11",
+                      "type": "enum",
+                      "options": ["3.2.11"]
+                    },
+                    {
+                      "variable": "password",
+                      "label": "密码",
+                      "description": "6-16位以字母、数字组合的密码",
+                      "required": true,
+                      "default": null,
+                      "type": "string"
+                    },
+                    {
+                      "variable": "cpu",
+                      "label": "CPU(核)",
+                      "description": "必须是1-2之间的数字",
+                      "required": true,
+                      "default": 1,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              },
+              "update": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "必须是1-2之间的数字",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              }
+            },
+            "service_binding": {
+              "create": {
+                "parameters": {
+                  "properties": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "m/s",
+          "id": "e44b275f-fe4b-4721-aa18-009c1ce7353e",
+          "description": "redis服务，主从模式",
+          "free": false,
+          "metadata": {
+            "costs": [{
+              "free_quota": 50,
+              "price": 12.00,
+              "unit": "month",
+              "description": "50G免费，超出部分1G12元"
+            }]
+          },
+          "schemas": {
+            "service_instance": {
+              "create": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "serviceName",
+                    "label": "服务名称",
+                    "description": "redis集群名称",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                    {
+                      "variable": "version",
+                      "label": "版本号",
+                      "description": "redis 版本号",
+                      "required": true,
+                      "default": "3.2.11",
+                      "type": "enum",
+                      "options": ["3.2.11"]
+                    },
+                    {
+                      "variable": "password",
+                      "label": "密码",
+                      "description": "6-16位以字母、数字组合的密码",
+                      "required": true,
+                      "default": null,
+                      "type": "string"
+                    },
+                    {
+                      "variable": "replicas",
+                      "label": "replicas",
+                      "description": "实例个数: 最小值为2",
+                      "required": true,
+                      "default": null,
+                      "type": "int"
+                    },
+                    {
+                      "variable": "cpu",
+                      "label": "CPU(核)",
+                      "description": "必须是1-2之间的数字",
+                      "required": true,
+                      "default": 1,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              },
+              "update": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "必须是1-2之间的数字",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              }
+            },
+            "service_binding": {
+              "create": {
+                "parameters": {
+                  "properties": []
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "m/s-sentinel",
+          "id": "b6ab12b3-c56b-480e-a09b-0e9df72f5bc0",
+          "description": "redis服务，M/S-sentinel模式(m/s 哨兵模式)",
+          "free": false,
+          "metadata": {
+            "costs": [{
+              "free_quota": 50,
+              "price": 12.00,
+              "unit": "month",
+              "description": "50G免费，超出部分1G12元"
+            }]
+          },
+          "schemas": {
+            "service_instance": {
+              "create": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "serviceName",
+                    "label": "服务名称",
+                    "description": "redis集群名称",
+                    "required": true,
+                    "default": null,
+                    "type": "string"
+                  },
+                    {
+                      "variable": "version",
+                      "label": "版本号",
+                      "description": "redis 版本号",
+                      "required": true,
+                      "default": "3.2.11",
+                      "type": "enum",
+                      "options": ["3.2.11"]
+                    },
+                    {
+                      "variable": "password",
+                      "label": "密码",
+                      "description": "6-16位以字母、数字组合的密码",
+                      "required": true,
+                      "default": null,
+                      "type": "string"
+                    },
+                    {
+                      "variable": "replicas",
+                      "label": "replicas",
+                      "description": "实例个数: 最小值为2",
+                      "required": true,
+                      "default": null,
+                      "type": "int"
+                    },
+                    {
+                      "variable": "cpu",
+                      "label": "CPU(核)",
+                      "description": "必须是1-2之间的数字",
+                      "required": true,
+                      "default": 1,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "sentinelNum",
+                      "label": "sentinel num",
+                      "description": "哨兵实例个数",
+                      "required": true,
+                      "default": 3,
+                      "type": "eum",
+                      "options": [3,
+                        5]
+                    },
+                    {
+                      "variable": "sentinelCPU",
+                      "label": "CPU(核数)",
+                      "description": "哨兵单实例cpu存必须是0.5-1之间的数字",
+                      "required": true,
+                      "default": 0.5,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "sentinelMemory",
+                      "label": "内存(M)",
+                      "description": "哨兵单实例内存值:必须是128-256之间的数字",
+                      "required": true,
+                      "default": 128,
+                      "type": "float"
+                    }]
+                }
+              },
+              "update": {
+                "parameters": {
+                  "properties": [{
+                    "variable": "cpu",
+                    "label": "CPU(核)",
+                    "description": "必须是1-2之间的数字",
+                    "required": true,
+                    "default": 1,
+                    "type": "float"
+                  },
+                    {
+                      "variable": "memory",
+                      "label": "内存(G)",
+                      "description": "内存值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 2,
+                      "type": "float"
+                    },
+                    {
+                      "variable": "capacity",
+                      "label": "存储(G)",
+                      "description": "存储值:必须是1-64之间的数字",
+                      "required": true,
+                      "default": 20,
+                      "type": "float"
+                    }]
+                }
+              }
+            },
+            "service_binding": {
+              "create": {
+                "parameters": {
+                  "properties": []
+                }
+              }
+            }
+          }
+        }]
+    }]
+}
