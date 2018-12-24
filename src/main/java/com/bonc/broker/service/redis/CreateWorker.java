@@ -43,11 +43,12 @@ public class CreateWorker extends BaseWorkerThread {
 	@Override
 	protected void execute() {
 		// 1. 创建mysql实例
-		RedisCluster redisCluster;
+		RedisCluster redisCluster = null;
 		try {
 			redisCluster = createInstance();
 		} catch (BrokerException e) {
 			updateTableForF();
+			deleteRedisClusterForFail(redisCluster);
 			logger.error("[redis create instance:\t]" + e.getMessage());
 			return;
 		}
@@ -59,6 +60,7 @@ public class CreateWorker extends BaseWorkerThread {
 		if (checkStatusFlag) {
 			processAfterCheckStatusSucceed(redisCluster);
 		}else {
+			deleteRedisClusterForFail(redisCluster);
 			processAfterCheckStatusFail(redisCluster);
 		}
 
@@ -236,6 +238,20 @@ public class CreateWorker extends BaseWorkerThread {
 		//创建实例失败，不需要创建实例表
 		updateTableForF();
 	}
+
+	private void deleteRedisClusterForFail(RedisCluster redisCluster) {
+
+		String namespace = redisCluster.getMetadata().getNamespace();
+		String serviceName = redisCluster.getMetadata().getName();
+
+		try {
+			RedisCluster redisCluster1 = k8sClientForRedis.inNamespace(namespace).withName(serviceName).get();
+			k8sClientForRedis.inNamespace(namespace).delete(redisCluster1);
+		}catch (Exception e) {
+			logger.error("[ ==del====\t]" + e.getMessage());
+		}
+	}
+
 }
 
 

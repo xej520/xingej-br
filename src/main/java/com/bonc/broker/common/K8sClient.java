@@ -38,6 +38,7 @@ public class K8sClient {
             logger.info("---从配置文件中读取到的masterURL:\t" + BrokerCfg.MASTER);
             Config config;
             try {
+                //"http://172.16.3.30:23333"
                 config = new ConfigBuilder().withMasterUrl("http://172.16.3.30:23333").build();
             }catch (Exception e){
                 logger.error("[ Get k8s config ]\t" + e.getMessage());

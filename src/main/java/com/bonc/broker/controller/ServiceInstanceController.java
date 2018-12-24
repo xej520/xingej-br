@@ -6,6 +6,7 @@ import com.bonc.broker.entity.BrokerOptLog;
 import com.bonc.broker.entity.ServiceInstance;
 import com.bonc.broker.entity.ServiceInstanceBinding;
 import com.bonc.broker.exception.BrokerException;
+import com.bonc.broker.exception.ExceptionMsg;
 import com.bonc.broker.repository.ServiceInstanceBindingRepo;
 import com.bonc.broker.service.DaoService;
 import com.bonc.broker.util.StringUtils;
@@ -33,41 +34,46 @@ public class ServiceInstanceController {
 
 	@Autowired
 	private DaoService daoService;
-
 	@Autowired
 	private ServiceInstanceBindingRepo serviceInstanceBindingRepo;
 
 	@PutMapping
-	public ResponseEntity<?> provisioning(@PathVariable("instance_id") String instance_id,
-										  @RequestParam(value = "accepts_incomplete", required = false) Boolean accepts_incomplete,
+	public ResponseEntity<?> provisioning(@PathVariable("instance_id") String instanceId,
+										  @RequestParam(value = "accepts_incomplete", required = false) Boolean acceptsIncomplete,
 										  @RequestBody JSONObject requestBody) {
 		// 1. 参数校验
 		try {
-			checkProvisioning(instance_id, accepts_incomplete, requestBody);
+			logger.info("[provisioning]\tinstanceID:\t" + instanceId + "\nrequestBody:\t" + requestBody.toJSONString());
+			checkProvisioning(instanceId, acceptsIncomplete, requestBody);
 		} catch (BrokerException e) {
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
 		// 2. 更新操作记录表
+		logger.info("[provisioning]\tstart save broker log into BrokerLog table!");
 		String id;
 		try {
-			id = daoService.saveBrokerLog(instance_id, Global.OPT_MYSQL_PROVISIONING);
+			id = daoService.saveBrokerLog(instanceId, Global.OPT_MYSQL_PROVISIONING);
 		} catch (BrokerException e) {
+			logger.error("[provisioning]\tstart save broker log into BrokerLog table!---->failed!");
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		// 3. 异步(创建实例)
-		Map<String, String> data = buildData(id, instance_id, requestBody);
+		logger.info("[provisioning]\tstart build data!");
+		Map<String, String> data = buildData(id, instanceId, requestBody);
 
 		String catalog = GlobalHelp.getCatalogType(data.get("plan_id"));
-
 		if (Global.MYSQL.equals(catalog)) {
+			logger.info("[provisioning]\tcreate mysql thread![create worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_MYSQL, MysqlClusterConst.MYSQL_CLUSTER_CREATE, data);
 		} else {
+			logger.info("[provisioning]\tcreate redis thread![create worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_REDIS, RedisClusterConst.REDIS_CLUSTER_CREATE, data);
 		}
-		logger.info("--create---mysql--id-----\t" + id);
+
 		// 4. 返回
+		logger.info("[provisioning]---return--operationId:\t" + id);
 		return ResponseEntity.status(HttpStatus.ACCEPTED).body(ResponseEntityHelp.setOperation(id));
 	}
 
@@ -78,34 +84,37 @@ public class ServiceInstanceController {
 											@RequestBody JSONObject requestBody) {
 		// 1. 参数校验
 		try {
+			logger.info("[updateInstance]\tinstanceID:\t" + instanceId + "\nrequestBody:\t" + requestBody.toJSONString());
 			checkUpdateInstance(instanceId, acceptsIncomplete, requestBody);
 		} catch (BrokerException e) {
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
 		// 2. 更新操作记录表
-
+		logger.info("[updateInstance]\tstart save broker log into BrokerLog table!");
 		String id;
 		try {
 			id = daoService.saveBrokerLog(instanceId, Global.OPT_MYSQL_UPDATE);
-		}catch (BrokerException e) {
+		} catch (BrokerException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		// 3. 异步 更新
+		logger.info("[updateInstance]\tstart build data!");
 		Map<String, String> data = buildData(id, instanceId, requestBody);
 
 		String serviceId = data.get("service_id");
-		logger.info("----update---serviceId:\t" + serviceId);
 		String catalog = GlobalHelp.getCatalogTypeByServiceId(serviceId);
-
 		if (Global.MYSQL.equals(catalog)) {
+			logger.info("[updateInstance]\tcreate mysql thread![update worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_MYSQL, MysqlClusterConst.MYSQL_CLUSTER_UPDATE, data);
 		} else {
+			logger.info("[updateInstance]\tcreate redis thread![update worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_REDIS, RedisClusterConst.REDIS_CLUSTER_UPDATE, data);
 		}
 
 		// 4. 返回
+		logger.info("[provisioning]---return--operationId:\t" + id);
 		return ResponseEntity.status(HttpStatus.ACCEPTED).body(ResponseEntityHelp.setOperation(id));
 	}
 
@@ -116,31 +125,36 @@ public class ServiceInstanceController {
 											@RequestParam(value = "accepts_incomplete", required = false) Boolean acceptsIncomplete) {
 		// 1. 参数校验
 		try {
+			logger.info("[deleteInstance]\tinstanceID:\t" + instanceId + "\tserviceID:\t" + serviceId + "\tplanID:\t" + planId);
 			checkDeleteInstance(instanceId, serviceId, planId, acceptsIncomplete);
 		} catch (BrokerException e) {
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
 		// 2. 更新操作记录表
+		logger.info("[deleteInstance]\tstart save broker log into BrokerLog table!");
 		String id;
 		try {
-			 id = daoService.saveBrokerLog(instanceId, Global.OPT_MYSQL_DELETE);
-		}catch (BrokerException e) {
+			id = daoService.saveBrokerLog(instanceId, Global.OPT_MYSQL_DELETE);
+		} catch (BrokerException e) {
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		// 3. 异步 删除
+		logger.info("[deleteInstance]\tstart build data!");
 		Map<String, String> data = buildData(id, instanceId, null);
 
 		String catalog = GlobalHelp.getCatalogTypeByServiceId(serviceId);
-
 		if (Global.MYSQL.equals(catalog)) {
+			logger.info("[deleteInstance]\tcreate mysql thread![delete worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_MYSQL, MysqlClusterConst.MYSQL_CLUSTER_DELETE, data);
 		} else {
+			logger.info("[deleteInstance]\tcreate redis thread![delete worker]");
 			ExecuteHelper.addPool(AppTypeConst.APPTYPE_REDIS, RedisClusterConst.REDIS_CLUSTER_DELETE, data);
 		}
 
 		// 4. 返回
+		logger.info("[deleteInstance]---return--operationId:\t" + id);
 		return ResponseEntity.status(HttpStatus.ACCEPTED).body(ResponseEntityHelp.setOperation(id));
 	}
 
@@ -151,9 +165,9 @@ public class ServiceInstanceController {
 	 * @return
 	 */
 	@GetMapping
-	public ResponseEntity<?> getServiceInstance(@PathVariable("instance_id") String instanceId){
+	public ResponseEntity<?> getServiceInstance(@PathVariable("instance_id") String instanceId) {
 		// 1. 获取实例
-		ServiceInstance serviceInstance  = daoService.getServiceInstance(instanceId);
+		ServiceInstance serviceInstance = daoService.getServiceInstance(instanceId);
 
 		if (null == serviceInstance) {
 			return new ResponseEntity<>(HttpStatus.BAD_REQUEST.getReasonPhrase(), HttpStatus.BAD_REQUEST);
@@ -167,7 +181,7 @@ public class ServiceInstanceController {
 	@RequestMapping(value = {"/last_operation"}, method = RequestMethod.GET)
 	public ResponseEntity<?> getLastOperation(@RequestParam("operation") String operation) {
 		// 1. 查询操作记录表
-		BrokerOptLog brokerOptLog  = daoService.getBrokerLogRepo(operation);
+		BrokerOptLog brokerOptLog = daoService.getBrokerLogRepo(operation);
 
 		if (null == brokerOptLog) {
 			logger.error("[Get last operation]:\tnot exists! operation:\t" + operation);
@@ -179,16 +193,16 @@ public class ServiceInstanceController {
 
 	/**
 	 * @param id          操作记录表的主键
-	 * @param instance_id 实例ID
+	 * @param instanceId 实例ID
 	 * @param requestBody 创建实例时，传递过来的请求体
 	 * @return
 	 */
-	private Map<String, String> buildData(String id, String instance_id, JSONObject requestBody) {
+	private Map<String, String> buildData(String id, String instanceId, JSONObject requestBody) {
 
 		Map<String, String> data = new HashMap<>(16);
 
 		data.put("id", id);
-		data.put("instance_id", instance_id);
+		data.put("instance_id", instanceId);
 
 		// 针对的是创建实例，更新实例操作
 		if (null != requestBody) {
@@ -239,17 +253,20 @@ public class ServiceInstanceController {
 
 		// 1. 校验instance_id格式 是否符合要求
 		if (!ParameterCheckingHelp.checkInstanceId(instanceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->instanceID:\t" + ExceptionMsg.INSTANCEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_BADREQUEST);
 		}
 
 		// 2. 校验instance_id 是否已经存在了
 		ServiceInstance instanceIsExists = daoService.getServiceInstance(instanceId);
 		if (null != instanceIsExists) {
-			throw new BrokerException(HttpStatus.CONFLICT, HttpStatus.CONFLICT.getReasonPhrase());
+			logger.error("--->instanceIsExists:\t" + ExceptionMsg.INSTANCEID_CONFLICT);
+			throw new BrokerException(HttpStatus.CONFLICT, ExceptionMsg.INSTANCEID_CONFLICT);
 		}
 
 		// 3. 校验accepts_incomplete
 		if (null != acceptsIncomplete && false == acceptsIncomplete.booleanValue()) {
+			logger.error("--->acceptsIncomplete:\t" + HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 			throw new BrokerException(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 		}
 
@@ -257,20 +274,24 @@ public class ServiceInstanceController {
 		// 4. 校验serviceId
 		String serviceId = requestBody.getString("service_id");
 		if (StringUtils.isBlank(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceId--1-->:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkServiceId(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceId--2-->:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		// 5. 校验planId
 		String planId = requestBody.getString("plan_id");
 		if (StringUtils.isBlank(planId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->plan_id--1-->:\t" + ExceptionMsg.PLANID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_BADREQUEST);
 		}
 		logger.info("-----planId:\t" + planId);
 		if (!ParameterCheckingHelp.checkPlanId(planId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->plan_id--2-->:\t" + ExceptionMsg.PLANID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_BADREQUEST);
 		}
 
 		// 6. 校验请求参数，如cpu，memory，version, password等
@@ -285,12 +306,14 @@ public class ServiceInstanceController {
 	private void checkProvisionParameters(String planId, JSONObject requestBody) throws BrokerException {
 		JSONObject parameters = requestBody.getJSONObject("parameters");
 		if (null == parameters) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->parameters--->:\t" + ExceptionMsg.PARAMETERS_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PARAMETERS_NOTFOUND);
 		}
 
 		JSONObject configuration = parameters.getJSONObject("configuration");
 		if (null == configuration) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->configuration--->:\t" + ExceptionMsg.PARAMETERS_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CONFIGURATION_NOTFOUND);
 		}
 
 		String catalogType = GlobalHelp.getCatalogType(planId);
@@ -311,27 +334,32 @@ public class ServiceInstanceController {
 		// 1. 校验instanceID
 		// 1.1 校验instance_id格式 是否符合要求
 		if (!ParameterCheckingHelp.checkInstanceId(instance_id)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->instanceId---1-->:\t" + ExceptionMsg.INSTANCEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_BADREQUEST);
 		}
 
 		// 1.2 校验instance_id 是否存在
 		ServiceInstance instanceIsExists = daoService.getServiceInstance(instance_id);
 		if (null == instanceIsExists) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->instanceIsExists---2-->:\t" + ExceptionMsg.INSTANCEID_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_NOTFOUND);
 		}
 
 		// 2. 校验accepts_incomplete
 		if (null != accepts_incomplete && false == accepts_incomplete.booleanValue()) {
+			logger.error("--->accepts_incomplete----->:\t" + HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 			throw new BrokerException(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 		}
 
 		// 3. 校验service_id
 		String serviceId = requestBody.getString("service_id");
 		if (StringUtils.isBlank(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->service_id----->:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkServiceId(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceId----->:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		// 4. 校验cpu，memory，capacity
@@ -343,36 +371,41 @@ public class ServiceInstanceController {
 		// 1. 校验instanceID
 		// 1.1 校验instance_id格式 是否符合要求
 		if (!ParameterCheckingHelp.checkInstanceId(instanceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->instanceId---1-->:\t" + ExceptionMsg.INSTANCEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_BADREQUEST);
 		}
 
 		// 1.2 校验instance_id 是否存在
 		ServiceInstance instanceIsExists = daoService.getServiceInstance(instanceId);
 		if (null == instanceIsExists) {
-			throw new BrokerException(HttpStatus.GONE, HttpStatus.GONE.getReasonPhrase());
+			logger.error("--->instanceIsExists---2-->:\t" + ExceptionMsg.INSTANCEID_NOTFOUND);
+			throw new BrokerException(HttpStatus.GONE, ExceptionMsg.INSTANCEID_NOTFOUND);
 		}
 
 		// 2. 校验accepts_incomplete
 		if (null != acceptsIncomplete && false == acceptsIncomplete.booleanValue()) {
+			logger.error("--->acceptsIncomplete----->:\t" + ExceptionMsg.UNPROCESSABLE_ENTITY + "\t" + HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 			throw new BrokerException(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 		}
 
 		// 这里包括了mysql，redis的serviceId 校验
 		// 3. 校验service_id
 		if (!Global.SERVICE_ID.contains(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->SERVICE_ID----->:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		// 4. 校验plan_id
 		if (!Global.PLAN_ID.contains(planId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->planId----->:\t" + ExceptionMsg.PLANID_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_NOTFOUND);
 		}
 
 		// 5. 校验此instance实例是否还存在binding对象
 		ServiceInstanceBinding serviceInstanceBinding = serviceInstanceBindingRepo.findByInstanceId(instanceId);
 		if (null != serviceInstanceBinding) {
 			logger.warn("delete instanceId: %d  failed; This instance ID also has a binding object", instanceId);
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.BINDING_INSTANCE_FORBID);
 		}
 	}
 
@@ -381,10 +414,12 @@ public class ServiceInstanceController {
 		// 1. 校验集群名称serviceName
 		String serviceName = configuration.getString("serviceName");
 		if (StringUtils.isBlank(serviceName)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceName---1-->:\t" + ExceptionMsg.SERVICENAME_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICENAME_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkServiceName(serviceName)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceName---2-->:\t" + ExceptionMsg.SERVICENAME_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICENAME_BADREQUEST);
 		}
 		//todo
 		//serviceName 是否要添加唯一性校验，同一租户，同mysql集群下，servicename 不能一样
@@ -395,56 +430,68 @@ public class ServiceInstanceController {
 		if (MysqlClusterConst.TYPE_MS.equals(type)) {
 			Integer replicas = configuration.getInteger("replicas");
 			if (null == replicas) {
-				throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+				logger.error("--->replicas---1-->:\t" + ExceptionMsg.REPLICAS_BADREQUEST_MYSQL);
+				throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.REPLICAS_BADREQUEST_MYSQL);
 			}
 			if (!ParameterCheckingHelp.checkReplicasForMysqlMs(replicas.intValue())) {
-				throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+				logger.error("--->replicas---2-->:\t" + ExceptionMsg.REPLICAS_BADREQUEST_MYSQL);
+				throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.REPLICAS_BADREQUEST_MYSQL);
 			}
 		}
 
 		// 3. 校验version
 		String version = configuration.getString("version");
 		if (null == version) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->version---1-->:\t" + ExceptionMsg.VERSION_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.VERSION_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkVersionForMysql(version)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->version---2-->:\t" + ExceptionMsg.VERSION_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.VERSION_BADREQUEST_MYSQL);
 		}
 
 		// 4. 校验密码password
 		String password = configuration.getString("password");
 		if (null == password) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->password---1-->:\t" + ExceptionMsg.PASSWORD_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PASSWORD_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkPassword(password)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->password---2-->:\t" + ExceptionMsg.PASSWORD_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PASSWORD_BADREQUEST);
 		}
 
 		// 5.校验cpu
 		Float cpu = configuration.getFloat("cpu");
 		if (null == cpu) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---1-->:\t" + ExceptionMsg.CPU_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkCpuForMysql(cpu.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---2-->:\t" + ExceptionMsg.CPU_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_MYSQL);
 		}
 
 		// 6. 校验memory
 		Float memory = configuration.getFloat("memory");
 		if (null == memory) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---1-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkMemoryForMysql(memory.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---2-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
 		}
 
 		// 7. 校验capacity
 		Float capacity = configuration.getFloat("capacity");
 		if (null == capacity) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---1-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkCapacityForMysql(capacity.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---2-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
 		}
 	}
 
@@ -470,10 +517,12 @@ public class ServiceInstanceController {
 		// 1. 校验集群名称serviceName
 		String serviceName = configuration.getString("serviceName");
 		if (StringUtils.isBlank(serviceName)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceName---1-->:\t" + ExceptionMsg.SERVICENAME_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICENAME_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkServiceName(serviceName)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->serviceName---2-->:\t" + ExceptionMsg.SERVICENAME_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICENAME_BADREQUEST);
 		}
 		//todo
 		// serviceName 唯一性校验
@@ -481,56 +530,68 @@ public class ServiceInstanceController {
 		// 2. 校验version
 		String version = configuration.getString("version");
 		if (null == version) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->version---1-->:\t" + ExceptionMsg.VERSION_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.VERSION_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkVersionForRedis(version)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->version---2-->:\t" + ExceptionMsg.VERSION_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.VERSION_BADREQUEST_REDIS);
 		}
 
 		// 3. 校验密码password
 		String password = configuration.getString("password");
 		if (null == password) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->password---1-->:\t" + ExceptionMsg.PASSWORD_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PASSWORD_BADREQUEST);
 		}
 		if (!ParameterCheckingHelp.checkPassword(password)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->password---2-->:\t" + ExceptionMsg.PASSWORD_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PASSWORD_BADREQUEST);
 		}
 
 		// 4.校验cpu
 		Float cpu = configuration.getFloat("cpu");
 		if (null == cpu) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---1-->:\t" + ExceptionMsg.CPU_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkCpuForRedis(cpu.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---2-->:\t" + ExceptionMsg.CPU_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_REDIS);
 		}
 
 		// 5. 校验memory
 		Float memory = configuration.getFloat("memory");
 		if (null == memory) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---1-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkMemoryForRedis(memory.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---2-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_REDIS);
 		}
 
 		// 6. 校验capacity
 		Float capacity = configuration.getFloat("capacity");
 		if (null == capacity) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---1-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkCapacityForRedis(capacity.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---2-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
 		}
 	}
 
 	private void checkReplicas(JSONObject configuration) throws BrokerException {
 		Integer replicas = configuration.getInteger("replicas");
 		if (null == replicas) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->replicas---1-->:\t" + ExceptionMsg.REPLICAS_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.REPLICAS_BADREQUEST_REDIS);
 		}
-		if (!ParameterCheckingHelp.checkReplicasForMysqlMs(replicas.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+		if (!ParameterCheckingHelp.checkReplicasForRedisMs(replicas.intValue())) {
+			logger.error("--->replicas---2-->:\t" + ExceptionMsg.REPLICAS_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.REPLICAS_BADREQUEST_REDIS);
 		}
 	}
 
@@ -572,7 +633,8 @@ public class ServiceInstanceController {
 	private void checkUpdateInstanceParameters(String serviceId, JSONObject requestBody) throws BrokerException {
 		JSONObject parameters = requestBody.getJSONObject("parameters");
 		if (null == parameters) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->parameters----->:\t" + ExceptionMsg.PARAMETERS_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PARAMETERS_NOTFOUND);
 		}
 
 		if (Global.MYSQL.equalsIgnoreCase(GlobalHelp.getCatalogTypeByServiceId(serviceId))) {
@@ -586,28 +648,34 @@ public class ServiceInstanceController {
 		// 3.1校验cpu
 		Float cpu = parameters.getFloat("cpu");
 		if (null == cpu) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu--1--->:\t" + ExceptionMsg.CPU_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkCpuForMysql(cpu.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---2-->:\t" + ExceptionMsg.CPU_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_MYSQL);
 		}
 
 		// 3.2 校验memory
 		Float memory = parameters.getFloat("memory");
 		if (null == memory) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---1-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkMemoryForMysql(memory.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---2-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_MYSQL);
 		}
 
 		// 3.3 校验capacity
 		Float capacity = parameters.getFloat("capacity");
 		if (null == capacity) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---1-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
 		}
 		if (!ParameterCheckingHelp.checkCapacityForMysql(capacity.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---2-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_MYSQL);
 		}
 	}
 
@@ -615,29 +683,34 @@ public class ServiceInstanceController {
 		// 1 校验cpu
 		Float cpu = parameters.getFloat("cpu");
 		if (null == cpu) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---1-->:\t" + ExceptionMsg.CPU_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkCpuForRedis(cpu.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->cpu---2-->:\t" + ExceptionMsg.CPU_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CPU_BADREQUEST_REDIS);
 		}
 
 		// 2 校验memory
 		Float memory = parameters.getFloat("memory");
 		if (null == memory) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---1-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkMemoryForRedis(memory.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->memory---2-->:\t" + ExceptionMsg.MEMORY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.MEMORY_BADREQUEST_REDIS);
 		}
 
 		// 3 校验capacity
 		Float capacity = parameters.getFloat("capacity");
 		if (null == capacity) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---1-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
 		}
 		if (!ParameterCheckingHelp.checkCapacityForRedis(capacity.intValue())) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("--->capacity---2-->:\t" + ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.CAPACITY_BADREQUEST_REDIS);
 		}
 	}
-
 }

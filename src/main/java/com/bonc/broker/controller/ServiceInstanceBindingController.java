@@ -10,6 +10,7 @@ import com.bonc.broker.controller.mode.BindingRedisOutK8s;
 import com.bonc.broker.entity.ServiceInstance;
 import com.bonc.broker.entity.ServiceInstanceBinding;
 import com.bonc.broker.exception.BrokerException;
+import com.bonc.broker.exception.ExceptionMsg;
 import com.bonc.broker.repository.ServiceInstanceRepo;
 import com.bonc.broker.service.DaoService;
 import com.bonc.broker.service.model.crd.mysql.DoneableMysql;
@@ -47,13 +48,10 @@ public class ServiceInstanceBindingController {
 
 	@Autowired
 	private ServiceInstanceRepo serviceInstanceRepo;
-
 	@Autowired
 	private DaoService daoService;
-
 	private MixedOperation<MysqlCluster, MysqlList, DoneableMysql, Resource<MysqlCluster, DoneableMysql>> k8sClientForMysql = K8sClient
 			.getK8sClientForMysql();
-
 	private MixedOperation<RedisCluster, RedisList, DoneableRedis, Resource<RedisCluster, DoneableRedis>> k8sClientForRedis = K8sClient
 			.getK8sClientForRedis();
 
@@ -61,8 +59,8 @@ public class ServiceInstanceBindingController {
 	@ResponseBody
 	@RequestMapping(value = {"/last_operation"}, method = RequestMethod.GET)
 	public ResponseEntity<?> getLastOperation(
-			@PathVariable("instance_id") String instance_id, @PathVariable("binding_id") String binding_id) {
-
+			@PathVariable("instance_id") String instanceId, @PathVariable("binding_id") String bindingId) {
+		logger.warn("[binding getLastOperation]--->getLastOperation---not support:\t" + "instanceID:\t" + instanceId + ";\tbindingID:\t" + bindingId);
 		return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY).body(HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 	}
 
@@ -73,12 +71,14 @@ public class ServiceInstanceBindingController {
 									 @RequestBody JSONObject requestBody) {
 		// 1. 参数校验
 		try {
+			logger.info("[binding ]\tinstanceID:\t" + instanceId + "\nrequestBody:\t" + requestBody.toJSONString());
 			checkBinding(instanceId, bindingId, acceptsIncomplete, requestBody);
 		} catch (BrokerException e) {
 			logger.error(e.getMessage());
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
+		logger.info("[binding ]\tstart binding info:\n");
 		// 2. 构建binding信息
 		String serviceId = requestBody.getString("service_id");
 		JSONObject credentials;
@@ -93,6 +93,7 @@ public class ServiceInstanceBindingController {
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
+		logger.info("[binding ]\tsave binding info into serviceInstance table:\n");
 		// 3. 回写到数据库ServiceBinding表
 		ServiceInstanceBinding serviceInstanceBinding;
 		try {
@@ -101,7 +102,7 @@ public class ServiceInstanceBindingController {
 			return new ResponseEntity<>(e.getMessage(), e.getCode());
 		}
 
-		logger.info("---回写到数据库ServiceBinding表-----:\t" + JSONObject.toJSONString(serviceInstanceBinding));
+		logger.info("[binding ]---return binding info-----:\n" + JSONObject.toJSONString(serviceInstanceBinding));
 		// 4. 返回
 		return ResponseEntity.status(HttpStatus.OK).body(credentials);
 	}
@@ -116,12 +117,15 @@ public class ServiceInstanceBindingController {
 			checkUnBinding(instanceId, bindingId, serviceId, planId, acceptsIncomplete);
 
 			// 2. 更新数据库(ServiceBinding表)，删除记录
+			logger.info("[unbinding ]\tstart delete binding info:bindingID:\t" + bindingId + "\tinstanceID:\t" + instanceId);
 			daoService.deleteServiceInstanceBinding(bindingId);
 		} catch (BrokerException e) {
+			logger.error("[unbinding ]\tdelete binding info:bindingID:\t" + bindingId + "\tinstanceID:\t" + instanceId + "\tfailed!");
 			return new ResponseEntity(e.getMessage(), e.getCode());
 		}
 
 		// 3. 返回
+		logger.info("[unbinding ]\tstart delete binding info:bindingID:\t" + bindingId + "\tinstanceID:\t" + instanceId + "\tOK");
 		return ResponseEntity.status(HttpStatus.OK).body(new JSONObject());
 	}
 
@@ -130,11 +134,11 @@ public class ServiceInstanceBindingController {
 		// 1. 查询数据库，获取绑定信息
 		ServiceInstanceBinding serviceInstanceBinding = daoService.getServiceInstanceBinding(bindingId);
 		if (null == serviceInstanceBinding) {
+			logger.error("[getBinding]\tget binding info\t" + bindingId + "\tfailed!");
 			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(HttpStatus.BAD_REQUEST.getReasonPhrase());
 		}
 
-		logger.info("----获取绑定信息---->\t" + serviceInstanceBinding.getCredentials());
-
+		logger.info("[getBinding]\tget binding info\t" + bindingId + "\tOK!");
 		// 2. 返回
 		return ResponseEntity.status(HttpStatus.OK).body(serviceInstanceBinding.getCredentialsObject());
 	}
@@ -147,24 +151,25 @@ public class ServiceInstanceBindingController {
 		// 1. 获取instance_id对应的mysqlCluster对象
 		ServiceInstance serviceInstance = daoService.getServiceInstance(instanceId);
 		if (null == serviceInstance) {
+			logger.error("[buildBindingInfoForMysql]--->get serviceInstance failed");
 			return null;
 		}
-		logger.info("---构建绑定信息-----:\t" + JSONObject.toJSONString(serviceInstance));
+		logger.info("[buildBindingInfoForMysql]--instanceID:\t" + instanceId + "\t" + JSONObject.toJSONString(serviceInstance));
 
 		MysqlCluster mysqlCluster = null;
-
 		try {
 			mysqlCluster = k8sClientForMysql.inNamespace(serviceInstance.getTenantId())
 					.withName(serviceInstance.getServiceName()).get();
 		} catch (Exception e) {
-			logger.error("===获取mysqlCluster---error:\t" + e.getMessage());
+			logger.error("[buildBindingInfoForMysql]--->error:\n" + e.getMessage());
 		}
 
-		logger.info("---构建绑定信息----mysqlCluster-:\t" + JSONObject.toJSONString(mysqlCluster));
+		logger.info("[buildBindingInfoForMysql]---get mysqlCluster from k8s ok!---instanceID:\t" + instanceId + "\tserviceName:\t" + serviceInstance.getServiceName());
 		// 2. 转换成json格式
 		JSONObject credentials = buildCredentials(mysqlCluster);
 
 		// 3. 返回
+		logger.info("[buildBindingInfoForMysql]---build credentials info:\n" + credentials.toJSONString());
 		return credentials;
 	}
 
@@ -172,23 +177,25 @@ public class ServiceInstanceBindingController {
 		// 1. 获取instance_id对应的redisCluster对象
 		ServiceInstance serviceInstance = daoService.getServiceInstance(instanceId);
 		if (null == serviceInstance) {
+			logger.error("[buildBindingInfoForRedis]--->get serviceInstance failed");
 			return null;
 		}
 
-		logger.info("---构建绑定信息-----:\t" + JSONObject.toJSONString(serviceInstance));
+		logger.info("[buildBindingInfoForRedis]--instanceID:\t" + instanceId + "\t" + JSONObject.toJSONString(serviceInstance));
 
 		RedisCluster redisCluster = null;
-
 		try {
 			redisCluster = k8sClientForRedis.inNamespace(serviceInstance.getTenantId())
 					.withName(serviceInstance.getServiceName()).get();
 		} catch (Exception e) {
-			logger.error("===redisCluster---error:\t" + e.getMessage());
+			logger.error("[buildBindingInfoForRedis]--->error:\n" + e.getMessage());
 		}
 
-		logger.info("---构建绑定信息----mysqlCluster-:\t" + JSONObject.toJSONString(redisCluster));
 		// 2. 转换成json格式
+		logger.info("[buildBindingInfoForRedis]---get redisCluster from k8s ok!---instanceID:\t" + instanceId + "\tserviceName:\t" + serviceInstance.getServiceName());
+
 		JSONObject credentials = buildCredentials(redisCluster);
+		logger.info("[buildBindingInfoForRedis]---build credentials info:\n" + credentials.toJSONString());
 
 		// 3. 返回
 		return credentials;
@@ -243,7 +250,7 @@ public class ServiceInstanceBindingController {
 		for (Map.Entry<String, ServiceStatus> entry : services.entrySet()) {
 			portAll.put(entry.getValue().getRole(), String.valueOf(entry.getValue().getNodePort()));
 		}
-
+		logger.info("[buildCredentials]---build credentials info、port:\n" + JSONObject.toJSONString(portAll));
 		Map<String, BindingNode> serverNodes = redisCluster.getStatus().getBindings();
 		for (Map.Entry<String, BindingNode> entry : serverNodes.entrySet()) {
 			JSONObject nodeObject = new JSONObject();
@@ -276,47 +283,56 @@ public class ServiceInstanceBindingController {
 							  JSONObject requestBody) throws BrokerException {
 		// 1. 校验instance_id格式 是否符合要求
 		if (StringUtils.isBlank(instanceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->instanceId:\t" + ExceptionMsg.INSTANCEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_BADREQUEST);
 		}
 
 		// 2. 校验instance_id 是否存在?
 		Optional<ServiceInstance> instanceIsExists = serviceInstanceRepo.findById(instanceId);
 		if (!instanceIsExists.isPresent()) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->instanceIsExists:\t" + ExceptionMsg.INSTANCEID_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_NOTFOUND);
 		}
 
 		// 3. 校验service_id
 		String serviceId = requestBody.getString("service_id");
 		if (null == serviceId) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->service_id:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		if (!Global.SERVICE_ID.contains(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->service_id:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		// 4. 校验plan_id
 		String planId = requestBody.getString("plan_id");
 		if (null == planId) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--1->plan_id:\t" + ExceptionMsg.PLANID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_BADREQUEST);
 		}
 		if (!Global.PLAN_ID.contains(planId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]-2-->plan_id:\t" + ExceptionMsg.PLANID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_BADREQUEST);
 		}
 
 		// 5. 校验binding格式 是否符合要求
 		if (StringUtils.isBlank(bindingId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->bindingId:\t" + ExceptionMsg.BINDING_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.BINDING_BADREQUEST);
 		}
 
 		// 5.1 校验bindingID 是否已经binding过了
 		ServiceInstanceBinding serviceInstanceBinding = daoService.getServiceInstanceBinding(bindingId);
 		if (null != serviceInstanceBinding) {
-			throw new BrokerException(HttpStatus.CONFLICT, HttpStatus.CONFLICT.getReasonPhrase());
+			logger.error("[binding interface]--->serviceInstanceBinding:\t" + ExceptionMsg.BINDING_INSTANCE_CONFLICT);
+			throw new BrokerException(HttpStatus.CONFLICT, ExceptionMsg.BINDING_INSTANCE_CONFLICT);
 		}
 
 		// 3. 仅支持同步，binding绑定；true表示: 支持异步请求
 		if (null != acceptsIncomplete && true == acceptsIncomplete.booleanValue()) {
+			logger.error("[binding interface]--->acceptsIncomplete:\t" + HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 			throw new BrokerException(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 		}
 	}
@@ -325,38 +341,46 @@ public class ServiceInstanceBindingController {
 			throws BrokerException {
 		// 1. 校验instance_id格式 是否符合要求
 		if (StringUtils.isBlank(instanceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->instanceId:\t" + ExceptionMsg.INSTANCEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_BADREQUEST);
 		}
 
 		// 2. 校验instance_id 是否存在?
 		Optional<ServiceInstance> instanceIsExists = serviceInstanceRepo.findById(instanceId);
 		if (!instanceIsExists.isPresent()) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->instanceIsExists:\t" + ExceptionMsg.INSTANCEID_NOTFOUND);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.INSTANCEID_NOTFOUND);
 		}
 
 		// 3. 校验service_id
 		if (!Global.SERVICE_ID.contains(serviceId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->serviceId:\t" + ExceptionMsg.SERVICEID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.SERVICEID_BADREQUEST);
 		}
 
 		// 4. 校验plan_id
 		if (!Global.PLAN_ID.contains(planId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->planId:\t" + ExceptionMsg.PLANID_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.PLANID_BADREQUEST);
 		}
 
 		// 5. 校验binding格式 是否符合要求
 		if (StringUtils.isBlank(bindingId)) {
-			throw new BrokerException(HttpStatus.BAD_REQUEST, HttpStatus.BAD_REQUEST.getReasonPhrase());
+			logger.error("[binding interface]--->bindingId:\t" + ExceptionMsg.BINDING_BADREQUEST);
+			throw new BrokerException(HttpStatus.BAD_REQUEST, ExceptionMsg.BINDING_BADREQUEST);
 		}
 
-		// 5.1 校验bindingID 是否bindingId 是否存在？
+		// 5.1 校验bindingID 是否bindingId 是否存在？根据bindingID 查询是否存在对应的实例ID
 		ServiceInstanceBinding serviceInstanceBinding = daoService.getServiceInstanceBinding(bindingId);
 		if (null == serviceInstanceBinding) {
-			throw new BrokerException(HttpStatus.GONE, HttpStatus.GONE.getReasonPhrase());
+			logger.error("---bind_id---instanceId not exists!");
+			logger.error("[binding interface]--->serviceInstanceBinding:\t" + ExceptionMsg.INSTANCEID_NOTFOUND);
+			throw new BrokerException(HttpStatus.GONE, ExceptionMsg.INSTANCEID_NOTFOUND);
 		}
 
 		// 6. 仅支持同步，binding绑定；true表示: 支持异步请求
 		if (null != acceptsIncomplete && true == acceptsIncomplete.booleanValue()) {
+			logger.error("[binding interface]--->acceptsIncomplete:\t" + HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 			throw new BrokerException(HttpStatus.UNPROCESSABLE_ENTITY, HttpStatus.UNPROCESSABLE_ENTITY.getReasonPhrase());
 		}
 	}

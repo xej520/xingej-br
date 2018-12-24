@@ -112,7 +112,6 @@ public class Global {
 		{
 			add(PLAN_ID_REDIS_SINGLE);
 			add(PLAN_ID_REDIS_MS);
-			add(PLAN_ID_REDIS_MS_SENTINEL);
 
 			add(PLAN_ID_MYSQL_MM);
 			add(PLAN_ID_MYSQL_MS);

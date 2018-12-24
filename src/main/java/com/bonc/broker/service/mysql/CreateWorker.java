@@ -43,11 +43,12 @@ public class CreateWorker extends BaseWorkerThread {
 	@Override
 	protected void execute() {
 		// 1. 创建mysql实例
-		MysqlCluster mysqlCluster;
+		MysqlCluster mysqlCluster = null;
 		try {
 			mysqlCluster = createInstance();
 		} catch (BrokerException e) {
 			updateTableForF();
+			deleteMysqlClusterForFail(mysqlCluster);
 			logger.error("[mysql create instance:\t]" + e.getMessage());
 			return;
 		}
@@ -59,6 +60,7 @@ public class CreateWorker extends BaseWorkerThread {
 		if (checkStatusFlag) {
 			processAfterCheckStatusSucceed(mysqlCluster);
 		}else {
+			deleteMysqlClusterForFail(mysqlCluster);
 			processAfterCheckStatusFail(mysqlCluster);
 		}
 	}
@@ -118,6 +120,9 @@ public class CreateWorker extends BaseWorkerThread {
 	 */
 	private MysqlCluster buildMysqlCluster(BaseRequestBody baseRequestBody) throws BrokerException {
 		MysqlCluster mysqlCluster = new MysqlCluster();
+
+//		buildMysqlClusterForMetaData(baseRequestBody);
+//		buildMysqlClusterForSpec(baseRequestBody);
 
 		ObjectMeta metaData = new ObjectMeta();
 		mysqlCluster.setKind(MysqlClusterConst.KIND);
@@ -258,6 +263,23 @@ public class CreateWorker extends BaseWorkerThread {
 	protected void processAfterCheckStatusFail(MysqlCluster mysqlCluster) {
 		updateTableForF();
 	}
+
+	private void deleteMysqlClusterForFail(MysqlCluster mysqlCluster) {
+
+		String namespace = mysqlCluster.getMetadata().getNamespace();
+		String serviceName = mysqlCluster.getMetadata().getName();
+
+		try {
+			MysqlCluster mysqlCluster1 = k8sClientForMysql.inNamespace(namespace).withName(serviceName).get();
+			k8sClientForMysql.inNamespace(namespace).delete(mysqlCluster1);
+		}catch (Exception e) {
+			logger.error("[ ==del====\t]" + e.getMessage());
+		}
+	}
+
+
+
+
 }
 
 
