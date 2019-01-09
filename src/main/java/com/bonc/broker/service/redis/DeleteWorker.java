@@ -60,11 +60,11 @@ public class DeleteWorker extends BaseWorkerThread {
 	@Override
 	protected void updateTableForS() {
 		// 1. 更新数据库
-		String instance_id = data.get("instance_id");
+		String instanceId = data.get("instance_id");
 		String id = data.get("id");
 		try {
 			daoService.updateBrokerLog(id, Global.STATE_S);
-			daoService.deleteServiceInstance(instance_id);
+			daoService.deleteServiceInstance(instanceId);
 		} catch (BrokerException e) {
 			logger.error(e.getMessage());
 		}
@@ -114,6 +114,11 @@ public class DeleteWorker extends BaseWorkerThread {
 
 		logger.info("---开始删除---进入轮询阶段-------");
 		RedisCluster rc = null;
+
+		logger.info("--redis---delete work---check---status----:" + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis---delete work---check---status---namespace---:\t" + namespace + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis---delete work---check---status---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+
 		while (true) {
 			//1. 获取YAML对象
 			try {
@@ -121,16 +126,18 @@ public class DeleteWorker extends BaseWorkerThread {
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-			logger.info("---开始删除---2---获取mysqlCluster对象---");
+			logger.info("---删除---2---获取redisCluster对象---" + "\tinstanceId:\t" + data.get("instance_id"));
 			if (null == rc) {
+				logger.info("---删除---3---删除redisCluster对象---成功!" + "\tinstanceId:\t" + data.get("instance_id"));
 				return true;
 			}
 
 			time++;
 			if (600 <= time) {
+				logger.error("---删除---4---删除redisCluster对象---timeout" + "\tinstanceId:\t" + data.get("instance_id"));
 				return false;
 			}
-
+			logger.info("--delete service instance--checkStatus----status--2---:time\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 			try {
 				Thread.sleep(500);
 			} catch (InterruptedException e) {

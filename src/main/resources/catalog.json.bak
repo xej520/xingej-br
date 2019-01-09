@@ -4,13 +4,58 @@
       "name": "mysql",
       "id": "8780d398-a010-4696-bb0d-78ea6511fa95",
       "description": "MySQL is one of the most popular database servers in the world. Notable users include Wikipedia, Facebook and Google.",
+      "Introduction": {
+        "feature": {
+          "name": "产品优势",
+          "list": [
+            {
+              "name": "快速创建",
+              "introduce": "仅需数十秒钟便可创建一个完整的mysql数据库集群"
+            },
+            {
+              "name": "安全保障",
+              "introduce": "运行与私有网络内，可以确保数据安全"
+            },
+            {
+              "name": "资源扩容",
+              "introduce": "可以对cpu， memory，capacity进行扩容"
+            }
+          ]
+        },
+        "function": {
+          "name": "产品功能",
+          "list": [
+            {
+              "name": "自动部署",
+              "introduce": "一键部署mysql集群"
+            },
+            {
+              "name": "数据库引擎",
+              "introduce": "支持MySQL-5.6、支持MySQL-5.6、支持MySQL-8.0版本"
+            },
+            {
+              "name": "服务模式",
+              "introduce": "支持单例模式(single)、双主模式(mm)、主从模式(ms)"
+            }
+          ]
+        },
+        "use_case": {
+          "name": "使用场景",
+          "list": [
+            {
+              "name": "电子商务应用",
+              "introduce": "为电子商务应用程序以及移动商务应用程序，提供经济高效并且安全的数据存储服务"
+            }
+          ]
+        }
+      },
       "tags": [
         "MySQL"
       ],
       "bindable": true,
       "metadata": {
         "provider": {
-          "name": "chinaUnicom",
+          "name": "chinaUnioncom",
           "description": "中国联合网络通信有限责任公司"
         },
         "display_name": "mysql service",
@@ -372,13 +417,58 @@
       "name": "redis",
       "id": "764ad650-e6cf-4855-9ab5-51820afa3515",
       "description": "Redis is an advanced key-value cache and store. It is often referred to as a data structure server since keys can contain strings, hashes, lists, sets, sorted sets, bitmaps and hyperloglogs.",
+      "Introduction": {
+        "feature": {
+          "name": "产品优势",
+          "list": [
+            {
+              "name": "快速创建",
+              "introduce": "仅需数十秒钟便可创建一个完整的redis数据库集群"
+            },
+            {
+              "name": "安全保障",
+              "introduce": "运行与私有网络内，可以确保数据安全"
+            },
+            {
+              "name": "资源扩容",
+              "introduce": "可以对cpu， memory，capacity进行扩容"
+            }
+          ]
+        },
+        "function": {
+          "name": "产品功能",
+          "list": [
+            {
+              "name": "自动部署",
+              "introduce": "一键部署redis集群"
+            },
+            {
+              "name": "服务模式",
+              "introduce": "支持单例模式(single)、主从模式(ms)"
+            }
+          ]
+        },
+        "use_case": {
+          "name": "使用场景",
+          "list": [
+            {
+              "name": "电商促销类业务",
+              "introduce": "活动促销、业务压力剧增时，可以使用redis主从集群模式，从而缓解系统整体压力"
+            },
+            {
+              "name": "互联网",
+              "introduce": "在互联网应用中，可以将用户的基本信息缓存到Redis集群中，提供读性能；也可以将一些静态资源，缓存到Redis集群中，提供响应速度。"
+            }
+          ]
+        }
+      },
       "tags": [
-        "NoSQL"
+        "Redis"
       ],
       "bindable": true,
       "metadata": {
         "provider": {
-          "name": "chinaUnicom",
+          "name": "chinaUnioncom",
           "description": "中国联合网络通信有限责任公司"
         },
         "display_name": "redis service",

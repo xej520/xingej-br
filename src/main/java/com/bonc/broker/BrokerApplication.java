@@ -3,6 +3,7 @@ package com.bonc.broker;
 import com.alibaba.fastjson.serializer.SerializerFeature;
 import com.alibaba.fastjson.support.config.FastJsonConfig;
 import com.alibaba.fastjson.support.spring.FastJsonHttpMessageConverter;
+import com.bonc.broker.util.PropertyUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,6 +16,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupp
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * @author xingej
+ */
 @SpringBootApplication
 @ComponentScan(nameGenerator = UniqueNameGenerator.class)
 public class BrokerApplication extends WebMvcConfigurationSupport {
@@ -23,6 +27,10 @@ public class BrokerApplication extends WebMvcConfigurationSupport {
     VersionInterceptor versionInterceptor;
 
     public static void main(String[] args) {
+
+        // 自定义配置文件
+        PropertyUtil.loadAllProperties();
+
         SpringApplication.run(BrokerApplication.class, args);
     }
 

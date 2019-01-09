@@ -1,4 +1,7 @@
 package com.bonc.broker.service;
+/**
+ * @author xingej
+ */
 
 public class BaseRequestBody {
 
@@ -7,13 +10,13 @@ public class BaseRequestBody {
     private String serviceName;
     private String password;
     private String cpu;
-    private String memeory;
+    private String memory;
     private String capacity;
     private String replicas;
 
-    private String tenant_id;
-    private String project_id;
-    private String user_id;
+    private String tenantId;
+    private String projectId;
+    private String userId;
 
     public String getVersion() {
         return version;
@@ -55,12 +58,12 @@ public class BaseRequestBody {
         this.cpu = cpu;
     }
 
-    public String getMemeory() {
-        return memeory;
+    public String getMemory() {
+        return memory;
     }
 
-    public void setMemeory(String memeory) {
-        this.memeory = memeory;
+    public void setMemory(String memory) {
+        this.memory = memory;
     }
 
     public String getCapacity() {
@@ -79,27 +82,27 @@ public class BaseRequestBody {
         this.replicas = replicas;
     }
 
-    public String getTenant_id() {
-        return tenant_id;
+    public String getTenantId() {
+        return tenantId;
     }
 
-    public void setTenant_id(String tenant_id) {
-        this.tenant_id = tenant_id;
+    public void setTenantId(String tenantId) {
+        this.tenantId = tenantId;
     }
 
-    public String getProject_id() {
-        return project_id;
+    public String getProjectId() {
+        return projectId;
     }
 
-    public void setProject_id(String project_id) {
-        this.project_id = project_id;
+    public void setProjectId(String projectId) {
+        this.projectId = projectId;
     }
 
-    public String getUser_id() {
-        return user_id;
+    public String getUserId() {
+        return userId;
     }
 
-    public void setUser_id(String user_id) {
-        this.user_id = user_id;
+    public void setUserId(String userId) {
+        this.userId = userId;
     }
 }

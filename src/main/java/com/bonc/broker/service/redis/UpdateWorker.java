@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -160,10 +161,8 @@ public class UpdateWorker extends BaseWorkerThread {
 
 		requests.setCpu(String.valueOf(Math.floor(Float.parseFloat(cpu) / 4)));
 		limits.setCpu(cpu);
-		logger.info("---update业务----2");
 		requests.setMemory(Math.floor(Float.parseFloat(memory) / 2) + AppTypeConst.UNIT_GI);
 		limits.setMemory(memory + AppTypeConst.UNIT_GI);
-		logger.info("---update业务----1");
 		spec.setCapacity(capacity + AppTypeConst.UNIT_GI);
 
 		resources.setRequests(requests);
@@ -180,6 +179,10 @@ public class UpdateWorker extends BaseWorkerThread {
 	private boolean isStoppedOrStarted(String namespace, String serviceName, String expectStatus) {
 		int time = 0;
 		String status = "";
+		logger.info("--redis---update work---check---status----:\t" + status + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis---update work---check---status---namespace---:\t" + namespace + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis---update work---check---status---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+
 		while (true) {
 			//1. 获取yaml对象
 			try {
@@ -188,15 +191,15 @@ public class UpdateWorker extends BaseWorkerThread {
 				logger.error(e.getMessage());
 			}
 
-			logger.info("----checkStatus----status----:\t" + status);
-
+			logger.info("--redis--update work--checkStatus--current-status:\t< " + status + ">\tinstanceId:\t" + data.get("instance_id"));
 			if (expectStatus.equalsIgnoreCase(status)) {
 				logger.info("--redis---停止/启动成功---");
 				return true;
 			}
-
+			logger.info("--redis---update service instance--checkStatus----status--2---:time\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 			time++;
 			if (600 <= time) {
+				logger.error("--redis--update work ----checkStatus----status--timeout----:\t< " + status + ">\tinstanceId:\t" + data.get("instance_id"));
 				return false;
 			}
 
@@ -239,6 +242,19 @@ public class UpdateWorker extends BaseWorkerThread {
 	protected boolean checkStatus(RedisCluster redisCluster) throws BrokerException {
 		String namespace = redisCluster.getMetadata().getNamespace();
 		String serviceName = redisCluster.getMetadata().getName();
+
+		// 0. 先判断更新资源操作完成
+		Boolean isOkUpdateResourcesFlag;
+		try {
+			isOkUpdateResourcesFlag = isOkUpdateResources(namespace, serviceName);
+		}catch (Exception e){
+			throw new BrokerException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+		}
+
+		if (!isOkUpdateResourcesFlag) {
+			logger.warn("--->redis-broker---change-resources--needStart---failed");
+			return false;
+		}
 
 		// 1. 先停止redis-operator
 		RedisSpec redisSpec = redisCluster.getSpec();
@@ -308,6 +324,44 @@ public class UpdateWorker extends BaseWorkerThread {
 	protected void processAfterCheckStatusFail(RedisCluster redisCluster) {
 		updateTableForF();
 	}
+
+	private boolean isOkUpdateResources(String namespace, String serviceName) {
+		int time = 0;
+		String status = "";
+		logger.info("--redis---update work---needRestart---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+		while (true) {
+			if (600 <= time) {
+				logger.error("----redis更新资源时，redis-operator 在规定时间内未更新needRestart字段；更新资源失败!\tinstanceId:\t" + data.get("instance_id"));
+				return false;
+			}
+			time++;
+			logger.info("---redis---update resources--needRestart--2---:time\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+			//1. 获取yaml对象
+			try {
+				RedisCluster redisCluster = k8sClientForRedis.inNamespace(namespace).withName(serviceName).get();
+				boolean needRestart = redisCluster.getStatus().isNeedRestart();
+				// 校验mysqlCluster 资源更新是否完成
+				if (needRestart){
+					logger.info("---redis--update work--needRestart--ok!");
+					return true;
+				}
+				logger.info("---redis--update work--needRestart--current-status:\t<" + status + ">\tinstanceId:\t" + data.get("instance_id"));
+
+			} catch (Exception e) {
+				logger.error("[update service instance]:\t get redisCluster operator error:=======>\t" + e.getMessage());
+			}
+
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage());
+			}
+		}
+	}
+
+
+
+
 }
 
 

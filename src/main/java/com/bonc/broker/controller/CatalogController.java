@@ -11,6 +11,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Scanner;
 
+/**
+ * @author xingej
+ */
+
 @RestController
 @RequestMapping(value = "/v2/catalog")
 public class CatalogController {

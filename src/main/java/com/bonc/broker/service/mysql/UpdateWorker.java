@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;
@@ -56,7 +57,7 @@ public class UpdateWorker extends BaseWorkerThread {
 		boolean checkStatusFlag;
 		try {
 			checkStatusFlag = checkStatus(mysqlCluster);
-		}catch (BrokerException e) {
+		} catch (BrokerException e) {
 			updateTableForF();
 			return;
 		}
@@ -64,7 +65,7 @@ public class UpdateWorker extends BaseWorkerThread {
 		// 3. 校验后，处理数据库，LVM等业务
 		if (checkStatusFlag) {
 			processAfterCheckStatusSucceed(mysqlCluster);
-		}else {
+		} else {
 			processAfterCheckStatusFail(mysqlCluster);
 		}
 
@@ -79,7 +80,8 @@ public class UpdateWorker extends BaseWorkerThread {
 		logger.info("---update---instanceId--->\t" + instanceId);
 		ServiceInstance serviceInstance = daoService.getServiceInstance(instanceId);
 		if (null == serviceInstance) {
-			throw new BrokerException("[ ]");
+			logger.error("[update work] query serviceInstance table failed; reason: by instanceId:\t" + instanceId);
+			throw new BrokerException("[update work] query serviceInstance table failed; reason: by instanceId:\t" + instanceId);
 		}
 
 		logger.info("---update---serviceInstance----->\t" + JSONObject.toJSONString(serviceInstance));
@@ -92,12 +94,12 @@ public class UpdateWorker extends BaseWorkerThread {
 			// 2. 更新资源属性
 			mysqlCluster = k8sClientForMysql.inNamespace(tenantId).withName(serviceName).get();
 			MysqlCluster mysqlResourceNew = updateResource(mysqlCluster);
-
+			logger.info("--更新业务---开始调用k8s的更新接口---");
 			// 3. 调用k8s接口，更新对象
 			orReplace = k8sClientForMysql.inNamespace(tenantId).createOrReplace(mysqlResourceNew);
 
 		} catch (Exception e) {
-			logger.info("---e:\t" + e);
+			logger.error("[update work] query k8s failed; reason: by instanceId:\t" + instanceId);
 			throw new BrokerException(e.getMessage());
 		}
 
@@ -108,7 +110,7 @@ public class UpdateWorker extends BaseWorkerThread {
 	@Override
 	protected void updateTableForS() {
 		// 2. 更新数据库
-
+		logger.info("---update work----updateTableForS----" + "\tinstanceId:\t" + data.get("instance_id"));
 		logger.info("----update---serviceInstance----parameters--->\t" + JSONObject.toJSONString(data.get("parameters")));
 
 		String parameters = data.get("parameters");
@@ -121,6 +123,7 @@ public class UpdateWorker extends BaseWorkerThread {
 
 		if (null == instanceId) {
 			try {
+				logger.error("---update work---+++--query service instance--object--failed---" + "\tinstanceId:\t" + data.get("instance_id"));
 				daoService.updateBrokerLog(data.get("id"), Global.STATE_F);
 			} catch (BrokerException e) {
 				logger.error(e.getMessage());
@@ -137,8 +140,10 @@ public class UpdateWorker extends BaseWorkerThread {
 		oldParametersObject.put("configuration", oldResourceObject);
 
 		try {
+			logger.error("---update work---update service instance---id:\t" + data.get("id") + "\tinstanceId:\t" + data.get("instance_id"));
 			daoService.updateServiceInstance(data.get("instance_id"), oldParametersObject);
 			daoService.updateBrokerLog(data.get("id"), Global.STATE_S);
+			logger.info("---update work---update broker log---id:\t" + data.get("id") + "\tinstanceId:\t" + data.get("instance_id"));
 		} catch (BrokerException e) {
 			logger.error(e.getMessage());
 			return;
@@ -148,6 +153,7 @@ public class UpdateWorker extends BaseWorkerThread {
 	@Override
 	protected void updateTableForF() {
 		try {
+			logger.info("---update work---update broker log---failed---id:\t" + data.get("id") + "\tinstanceId:\t" + data.get("instance_id"));
 			daoService.updateBrokerLog(data.get("id"), Global.STATE_F);
 		} catch (BrokerException e) {
 			logger.error(e.getMessage());
@@ -195,12 +201,27 @@ public class UpdateWorker extends BaseWorkerThread {
 	protected boolean checkStatus(MysqlCluster mysqlCluster) throws BrokerException {
 		String namespace = mysqlCluster.getMetadata().getNamespace();
 		String serviceName = mysqlCluster.getMetadata().getName();
+
+		// 0. 先判断更新资源操作完成
+		Boolean isOkUpdateResourcesFlag;
+		try {
+			isOkUpdateResourcesFlag = isOkUpdateResources(namespace, serviceName);
+		}catch (Exception e){
+			throw new BrokerException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+		}
+
+		if (!isOkUpdateResourcesFlag) {
+			logger.warn("--->mysql-broker---change-resources--operator---failed");
+			return false;
+		}
+
 		//1. 先停止mysql-operator
 		MysqlSpec mysqlSpec = mysqlCluster.getSpec();
 		mysqlSpec.getClusterop().setOperator(AppTypeConst.OPT_CLUSTER_STOP);
+		logger.info("----update--mysqlCluster---stop--mysqlClusters---0-->\t" + JSONObject.toJSONString(mysqlCluster));
 		try {
 			k8sClientForMysql.inNamespace(namespace).createOrReplace(mysqlCluster);
-		}catch (Exception e) {
+		} catch (Exception e) {
 			throw new BrokerException("[ ]");
 		}
 		boolean isStoppedFlag = isStoppedOrStarted(namespace, serviceName, "stopped");
@@ -217,7 +238,8 @@ public class UpdateWorker extends BaseWorkerThread {
 			logger.info("----update--mysqlCluster---start---1-->\t" + JSONObject.toJSONString(mysqlCluster1));
 			logger.info("----update--mysqlCluster---开始调用k8s接口---update-->");
 			k8sClientForMysql.inNamespace(namespace).createOrReplace(mysqlCluster1);
-		}catch (Exception e) {
+		} catch (Exception e) {
+			logger.error("----update work ----start optType---error---\tinstanceId:\t" + data.get("instance_id"));
 			throw new BrokerException("[ ]");
 		}
 		boolean isStartedFlag = isStoppedOrStarted(namespace, serviceName, "running");
@@ -232,6 +254,7 @@ public class UpdateWorker extends BaseWorkerThread {
 
 	@Override
 	protected void processAfterCheckStatusSucceed(MysqlCluster mysqlCluster) {
+		logger.info("---update work----processAfterCheckStatusSucceed----" + "\tinstanceId:\t" + data.get("instance_id"));
 		// 1. 判断是否进行存储扩容
 		boolean isExpandOk = true;
 		String instanceId = data.get("instance_id");
@@ -248,7 +271,7 @@ public class UpdateWorker extends BaseWorkerThread {
 				logger.info("---->mysql-broker---开始扩容操作!");
 				isExpandOk = doExpandCapacity(mysqlCluster);
 			}
-		}catch (Exception e) {
+		} catch (Exception e) {
 			logger.error(e.getMessage());
 			updateTableForF();
 			return;
@@ -268,7 +291,7 @@ public class UpdateWorker extends BaseWorkerThread {
 		updateTableForF();
 	}
 
-	private boolean doExpandCapacity(MysqlCluster mysqlCluster) throws BrokerException{
+	private boolean doExpandCapacity(MysqlCluster mysqlCluster) throws BrokerException {
 		Lvm lvm;
 		String namespace = mysqlCluster.getMetadata().getNamespace();
 		Map<String, MysqlServer> nodes = mysqlCluster.getStatus().getServerNodes();
@@ -287,7 +310,7 @@ public class UpdateWorker extends BaseWorkerThread {
 				k8sClientForLvm.inNamespace(mysqlCluster.getMetadata().getNamespace()).createOrReplace(lvm);
 				logger.info("创建lvm完成，lvm：" + JSON.toJSONString(lvm));
 			}
-		}catch (Exception e) {
+		} catch (Exception e) {
 			logger.error("----lvm--error---\t" + e.getMessage());
 			throw new BrokerException(e.getMessage());
 		}
@@ -300,23 +323,27 @@ public class UpdateWorker extends BaseWorkerThread {
 		String status = "";
 
 		logger.info("----checkStatus----expectStatus:\t" + expectStatus);
+		logger.info("--mysql---update work---check---status----:\t" + status + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--mysql---update work---check---status---namespace---:\t" + namespace + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--mysql---update work---check---status---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 		while (true) {
 			if (600 <= time) {
-				logger.warn("--mysql---更新失败---超时结束---");
+				logger.error("----update work ----checkStatus----status--timeout----:\t< " + status + ">\tinstanceId:\t" + data.get("instance_id"));
 				return false;
 			}
 			time++;
+			logger.info("---mysql---update service instance--checkStatus----status--2---:time\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 			//1. 获取yaml对象
 			try {
 				status = k8sClientForMysql.inNamespace(namespace).withName(serviceName).get().getStatus().getPhase();
 				if (expectStatus.equalsIgnoreCase(status)) {
-					logger.info("----checkStatus--current-status:\t" + status + "  ok!");
+					logger.info("---mysql--update work---checkStatus--current-status:\t" + status + "  ok!");
 					return true;
 				}
-				logger.info("----checkStatus--current-status:\t" + status);
+				logger.info("---mysql--update work--checkStatus--current-status:\t\t<" + status + ">\tinstanceId:\t" + data.get("instance_id"));
 
 			} catch (Exception e) {
-				logger.error(e.getMessage());
+				logger.error("[update service instance]:\t get mysqlCluster yaml status: error:=======>\t" + e.getMessage());
 			}
 
 			try {
@@ -326,6 +353,41 @@ public class UpdateWorker extends BaseWorkerThread {
 			}
 		}
 	}
+
+	private boolean isOkUpdateResources(String namespace, String serviceName) {
+		int time = 0;
+		String status = "";
+		logger.info("--mysql---update work---operator---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+		while (true) {
+			if (600 <= time) {
+				logger.error("----mysql更新资源时，mysql-operator 在规定时间内未清空operator字段；更新资源失败!\tinstanceId:\t" + data.get("instance_id"));
+				return false;
+			}
+			time++;
+			logger.info("---mysql---update resources--operator--2---:time\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
+			//1. 获取yaml对象
+			try {
+				MysqlCluster mysqlCluster = k8sClientForMysql.inNamespace(namespace).withName(serviceName).get();
+				String operator = mysqlCluster.getSpec().getClusterop().getOperator();
+				// 校验mysqlCluster 资源更新是否完成
+				if (StringUtils.isBlank(operator)){
+					logger.info("---mysql--update work--operator--ok!");
+					return true;
+				}
+				logger.info("---mysql--update work--checkStatus--current-status:\t<" + status + ">\tinstanceId:\t" + data.get("instance_id"));
+
+			} catch (Exception e) {
+				logger.error("[update service instance]:\t get mysqlCluster operator error:=======>\t" + e.getMessage());
+			}
+
+			try {
+				Thread.sleep(500);
+			} catch (InterruptedException e) {
+				logger.error(e.getMessage());
+			}
+		}
+	}
+
 
 }
 

@@ -59,7 +59,7 @@ public class CreateWorker extends BaseWorkerThread {
 		// 3. 处理数据库,LVM等基本业务
 		if (checkStatusFlag) {
 			processAfterCheckStatusSucceed(redisCluster);
-		}else {
+		} else {
 			deleteRedisClusterForFail(redisCluster);
 			processAfterCheckStatusFail(redisCluster);
 		}
@@ -80,6 +80,7 @@ public class CreateWorker extends BaseWorkerThread {
 	@Override
 	protected void updateTableForF() {
 		try {
+			logger.info(String.format("--update broker log---status: failed! id:\t%s;\tinstanceId:\t%s;\tplanId:\t%s", data.get("id"), data.get("instance_id"), data.get("plan_id")));
 			daoService.updateBrokerLog(data.get("id"), Global.STATE_F);
 		} catch (BrokerException e) {
 			logger.error(e.getMessage());
@@ -187,19 +188,22 @@ public class CreateWorker extends BaseWorkerThread {
 
 		int time = 0;
 		String status = "";
+		logger.info("--redis-----create service instance---check---status----:\t" + status + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis-----create service instance---check---status---namespace---:\t" + namespace + "\tinstanceId:\t" + data.get("instance_id"));
+		logger.info("--redis-----create service instance---check---status---serviceName-:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 		while (true) {
 			time++;
 			if (600 <= time) {
+				logger.error("--redis--create service instance---checkStatus----status--timeout----:\t<" + status + ">\tinstanceId:\t" + data.get("instance_id"));
 				return false;
 			}
-
 			//1. 获取yaml对象
 			try {
 				status = k8sClientForRedis.inNamespace(namespace).withName(serviceName).get().getStatus().getPhase();
 			} catch (Exception e) {
 				logger.error(e.getMessage());
 			}
-			logger.info("----checkStatus----status----:\t" + status);
+			logger.info("--redis--create instance--checkStatus----currentStatus:\t<"+status+">\ttime\t" + time + " < 600 " + "\tnamespace:\t" + namespace + "\tserviceName:\t" + serviceName + "\tinstanceId:\t" + data.get("instance_id"));
 
 			if ("running".equalsIgnoreCase(status)) {
 				return true;
@@ -247,7 +251,8 @@ public class CreateWorker extends BaseWorkerThread {
 		try {
 			RedisCluster redisCluster1 = k8sClientForRedis.inNamespace(namespace).withName(serviceName).get();
 			k8sClientForRedis.inNamespace(namespace).delete(redisCluster1);
-		}catch (Exception e) {
+			logger.info("---> create redis clusters failed! call k8s delete interface: delete redis clusters OK!");
+		} catch (Exception e) {
 			logger.error("[ ==del====\t]" + e.getMessage());
 		}
 	}

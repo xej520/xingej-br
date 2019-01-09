@@ -2,6 +2,7 @@ package com.bonc.broker.service.mysql.base;
 
 import com.alibaba.fastjson.JSON;
 import com.bonc.broker.common.K8sClient;
+import com.bonc.broker.exception.BrokerException;
 import com.bonc.broker.service.ILvmWorker;
 import com.bonc.broker.service.model.crd.lvm.DoneableLvm;
 import com.bonc.broker.service.model.crd.lvm.LvmList;
@@ -15,7 +16,8 @@ import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.Resource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Component;
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,7 +26,7 @@ import java.util.Map;
 /**
  * @author xingej
  */
-@Component
+@Service
 public class LvmImpl implements ILvmWorker<MysqlCluster> {
 
     private static Logger logger = LoggerFactory.getLogger(LvmImpl.class);
@@ -32,9 +34,8 @@ public class LvmImpl implements ILvmWorker<MysqlCluster> {
     private MixedOperation<Lvm, LvmList, DoneableLvm, Resource<Lvm, DoneableLvm>> k8sClientForLvm = K8sClient.getK8sClientForLvm();
 
     @Override
-    public void registerLvm(MysqlCluster mysqlCluster) {
-        logger.info("===========开始创建lvm===========");
-
+    public void registerLvm(MysqlCluster mysqlCluster) throws BrokerException{
+        logger.info("===========mysql start create lvm===========");
         String namespace = mysqlCluster.getMetadata().getNamespace();
         ObjectMeta metadata;
         LVMSpec spec;
@@ -43,6 +44,15 @@ public class LvmImpl implements ILvmWorker<MysqlCluster> {
 
         try {
             for (Map.Entry<String, MysqlServer> entry : nodes.entrySet()) {
+
+                // 1. 先校验是否已经存在，若存在，则删除
+                Resource<Lvm, DoneableLvm> lvmDoneableLvmResource = k8sClientForLvm.inNamespace(namespace).withName(entry.getValue().getVolumeid());
+                if (null != lvmDoneableLvmResource.get()) {
+                    logger.warn("--->mysql create instance ---->删除已经存在的LVM");
+                    k8sClientForLvm.inNamespace(namespace).delete(lvmDoneableLvmResource.get());
+                }
+
+                // 2. 开始创建LVM
                 Lvm lvm  = new Lvm();
                 spec = new LVMSpec();
                 metadata = new ObjectMeta();
@@ -61,16 +71,19 @@ public class LvmImpl implements ILvmWorker<MysqlCluster> {
                 lvm.setMetadata(metadata);
                 lvm.setSpec(spec);
 
+                logger.info("---开始调用LVM的create接口-----");
                 k8sClientForLvm.inNamespace(namespace).create(lvm);
-                logger.info("创建lvm完成，lvm：" + JSON.toJSONString(lvm));
+                logger.info("mysql create lvm ok:\t" + JSON.toJSONString(lvm));
             }
         }catch (Exception e) {
-            logger.info("===2===>创建LVM\t" + e.getMessage());
+            logger.error("==mysql==create lvm  error=>创建LVM\t" + e.getMessage());
+            throw new BrokerException(HttpStatus.INTERNAL_SERVER_ERROR, "mysql create lvm failed!");
         }
     }
 
     @Override
     public void delLvm(MysqlCluster mysqlCluster) {
+        logger.info("[delLvm]---start mysql lvm serviceName:\t" + mysqlCluster.getMetadata().getName());
         if (null != mysqlCluster) {
             String namespace = mysqlCluster.getMetadata().getNamespace();
             logger.info("----开始删除---mysql---lvm----");
@@ -78,10 +91,12 @@ public class LvmImpl implements ILvmWorker<MysqlCluster> {
             List<Lvm> delList = new ArrayList<>(16);
 
             for (Map.Entry<String, MysqlServer> entry : nodes.entrySet()) {
-                Resource<Lvm, DoneableLvm> lvmResource = k8sClientForLvm.inNamespace("default").withName(entry.getValue().getVolumeid());
+                logger.info("[delLvm]---start mysql lvm serviceName----->");
+                Resource<Lvm, DoneableLvm> lvmResource = k8sClientForLvm.inNamespace(namespace).withName(entry.getValue().getVolumeid());
                 delList.add(lvmResource.get());
             }
 
+            logger.info("----调用---mysql---lvm--的删除接口--");
             k8sClientForLvm.inNamespace(namespace).delete(delList);
 
             logger.info("删除集群时删除lvm成功！");

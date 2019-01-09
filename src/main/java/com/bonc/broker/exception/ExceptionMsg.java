@@ -2,6 +2,7 @@ package com.bonc.broker.exception;
 
 public class ExceptionMsg {
     public static String SERVICENAME_BADREQUEST = "serviceName parameter does not meet the requirements![A service name consisting of 6,16-bit lowercase letters and lowercase letters or numbers]";
+    public static String SERVICE_NAME_CONFLICT = "serviceName already exists!";
 
     public static String INSTANCEID_BADREQUEST = "instance_id does not meet the requirements!";
     public static String INSTANCEID_CONFLICT = "instance_id already exists";
@@ -21,6 +22,7 @@ public class ExceptionMsg {
     public static String PLANID_FOUND = "plan_id has exists!";
 
     public static String PARAMETERS_NOTFOUND = "parameters not found!";
+    public static String TENANT_ID_NOTFOUND = "tenant_id parameter not found!";
     public static String CONFIGURATION_NOTFOUND = "configuration parameter not found!";
 
     public static String CPU_NOTFOUND_MYSQL = "cpu parameter not found!";
@@ -33,6 +35,7 @@ public class ExceptionMsg {
 
     public static String CAPACITY_NOTFOUND_MYSQL = "capacity parameter parameters not found!";
     public static String CAPACITY_BADREQUEST_MYSQL = "capacity parameter does not meet the requirements![1-2048]";
+    public static String CAPACITY_NOT_LESS = "the value of capacity parameter  not less than the old value.";
     public static String CAPACITY_BADREQUEST_REDIS = "capacity parameter does not meet the requirements![1-64]";
 
     public static String VERSION_NOTFOUND_MYSQL = "version parameter not found!";
@@ -49,7 +52,7 @@ public class ExceptionMsg {
     public static String BINDING_INSTANCE_FORBID = "This instance ID also has a binding object";
     public static String BINDING_INSTANCE_CONFLICT = "binding_id has already exists";
     public static String BINDING_BADREQUEST = "binding_id parameter does not meet the requirements!";
-    public static String BINDINGID_NOTFOUND = "bindingId object not exists";
+    public static String BINDINGID_NOTFOUND = "binding object not exists";
 
     public static String SENTINEL_NUM_REDIS = "sentinelNum parameter does not meet the requirements![3,5]";
     public static String SENTINEL_CPU_REDIS = "sentinelCpu parameter does not meet the requirements![0.5-1]";

@@ -46,10 +46,11 @@ public class DaoService {
 	 * @param optType
 	 * @return
 	 */
-	public String saveBrokerLog(String instanceId, String optType) throws BrokerException {
+	public String saveBrokerLog(String planId, String instanceId, String optType) throws BrokerException {
 		BrokerOptLog brokerOptLog = new BrokerOptLog();
 
 		brokerOptLog.setInstanceId(instanceId);
+		brokerOptLog.setPlanId(planId);
 		brokerOptLog.setOptType(optType);
 
 		brokerOptLog.setCreatedTime(new Date());
@@ -248,5 +249,21 @@ public class DaoService {
 		return Float.valueOf(capacity);
 	}
 
+	/**
+	 * @param tenantId    租户ID，对应命名空间
+	 * @param catalog     有效值:mysql, redis
+	 * @param serviceName
+	 * @return
+	 */
+	public ServiceInstance getServiceInstanceByTenantIdAndCatalogAndServiceName(String tenantId, String catalog, String serviceName) {
+		ServiceInstance serviceInstance  = serviceInstanceRepo.findByTenantIdAndCatalogAndServiceName(tenantId, catalog, serviceName);
 
+		if (null == serviceInstance) {
+			logger.error("---query service instance table failed by tenantId:\t" + tenantId + "\tcatalog:\t" + catalog + "\tserviceName:\t" + serviceName);
+			return null;
+		}
+
+		logger.info("---query service instance table by tenantId:\t" + tenantId + "\tcatalog:\t" + catalog + "\tserviceName:\t" + serviceName);
+		return serviceInstance;
+	}
 }

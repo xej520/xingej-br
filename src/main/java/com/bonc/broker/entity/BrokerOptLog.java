@@ -17,8 +17,8 @@ public class BrokerOptLog implements Serializable {
     @GeneratedValue(generator = "uuidGenerator")
     private String id;
 
-    @Column(name = "`SERVICE_ID`")  // service_id，
-    private String serviceId;
+    @Column(name = "`PLAN_ID`")  // plan_id，
+    private String planId;
 
     @Column(name = "`INSTANCE_ID`") //instance ID
     private String instanceId;
@@ -94,11 +94,11 @@ public class BrokerOptLog implements Serializable {
         this.updatedTime = updatedTime;
     }
 
-    public String getServiceId() {
-        return serviceId;
+    public String getPlanId() {
+        return planId;
     }
 
-    public void setServiceId(String serviceId) {
-        this.serviceId = serviceId;
+    public void setPlanId(String planId) {
+        this.planId = planId;
     }
 }

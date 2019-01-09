@@ -23,6 +23,32 @@ public class StringUtils {
 
     private static final Logger logger = Logger.getLogger(StringUtils.class);
 
+    private static final Pattern IS_INTEGER_PATTERN = Pattern.compile("^[-|+]?(\\d+)(\\.\\d+)?");
+    private static final Pattern IS_NUMERIC_PATTERN = Pattern.compile("^[-|+]?(\\d+)(\\.\\d+)?");
+    private static final Pattern IS_POSITIVE_INTEGER_PATTERN = Pattern.compile("^[1-9][0-9]*");
+
+    private static final Pattern IS_IP_PATTERN = Pattern.compile(
+            "((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)(\\.((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)){3}");
+
+    private static final Pattern IS_DOMAINNAME_PATTERN = Pattern.compile("[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+");
+
+    private static final Pattern IS_IPV4_PATTERN = Pattern.compile(
+            "((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)(\\.((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)){3}");
+
+    private static final Pattern IS_HTTPURL_PATTERN = Pattern.compile("http://(\\w+(-\\w+)*)(\\.(\\w+(-\\w+)*))*(:\\d{2,4})?(\\/[^#$]+)*");
+
+    private static final Pattern IS_QQ_PATTERN = Pattern.compile("^[1-9]\\d{4,8}$");
+
+    private static final Pattern IS_EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9._%+-]+@(\\w+\\.)+[a-zA-Z]{2,3}");
+
+    private static final Pattern IS_ACCOUNT_PATTERN = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]{4,15}$");
+
+    private static final Pattern IS_TELPHONE_PATTERN = Pattern.compile("^(((\\+|0)[0-9]{2,3})-)?((0[0-9]{2,3})-)?([0-9]{8})(-([0-9]{3,4}))?$");
+
+    private static final Pattern IS_URL_PATTERN = Pattern.compile("^[a-zA-z]+://[^\\s]+");
+
+    private static final Pattern IS_RTMPURL_PATTERN = Pattern.compile("rtmp://(\\w+(-\\w+)*)(\\.(\\w+(-\\w+)*))*(:\\d{2,4})?(\\/[^#$]+)*");
+
     /**
      * 常量，值为空串<code>""</code>.
      */
@@ -1073,8 +1099,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[-|+]?(\\d+)(\\.\\d+)?");
-        return pattern.matcher(input).matches();
+
+        return IS_NUMERIC_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1088,8 +1114,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[-|+]?[1-9][0-9]*");
-        return pattern.matcher(input).matches();
+
+        return IS_INTEGER_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1103,8 +1129,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[1-9][0-9]*");
-        return pattern.matcher(input).matches();
+
+        return IS_POSITIVE_INTEGER_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1118,8 +1144,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^(((\\+|0)[0-9]{2,3})-)?((0[0-9]{2,3})-)?([0-9]{8})(-([0-9]{3,4}))?$");
-        return pattern.matcher(input).matches();
+
+        return IS_TELPHONE_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1150,8 +1176,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[a-zA-Z][a-zA-Z0-9_]{4,15}$");
-        if (!pattern.matcher(input).matches()) {
+
+        if (!IS_ACCOUNT_PATTERN.matcher(input).matches()) {
             return false;
         }
         return limitedLength(input, minLength, maxLength);
@@ -1184,8 +1210,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[A-Za-z0-9._%+-]+@(\\w+\\.)+[a-zA-Z]{2,3}");
-        return pattern.matcher(input).matches();
+
+        return IS_EMAIL_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1199,8 +1225,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("[a-zA-Z0-9][-a-zA-Z0-9]{0,62}(\\.[a-zA-Z0-9][-a-zA-Z0-9]{0,62})+");
-        return pattern.matcher(input).matches();
+
+        return IS_DOMAINNAME_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1216,9 +1242,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile(
-                "((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)(\\.((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)){3}");
-        return pattern.matcher(input).matches();
+
+        return IS_IP_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1232,9 +1257,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile(
-                "((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)(\\.((25[0-5])|(2[0-4]\\d)|(1\\d\\d)|([1-9]\\d)|\\d)){3}");
-        return pattern.matcher(input).matches();
+
+        return IS_IPV4_PATTERN.matcher(input).matches();
 
     }
 
@@ -1281,8 +1305,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("http://(\\w+(-\\w+)*)(\\.(\\w+(-\\w+)*))*(:\\d{2,4})?(\\/[^#$]+)*");
-        return pattern.matcher(input).matches();
+
+        return IS_HTTPURL_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1296,8 +1320,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[a-zA-z]+://[^\\s]+");
-        return pattern.matcher(input).matches();
+
+        return IS_URL_PATTERN.matcher(input).matches();
     }
 
     /**
@@ -1312,8 +1336,8 @@ public class StringUtils {
             return false;
         }
         String value = removeLastSlashChar(input);
-        Pattern pattern = Pattern.compile("rtmp://(\\w+(-\\w+)*)(\\.(\\w+(-\\w+)*))*(:\\d{2,4})?(\\/[^#$]+)*");
-        return pattern.matcher(value).matches();
+
+        return IS_RTMPURL_PATTERN.matcher(value).matches();
     }
 
     /**
@@ -1338,8 +1362,8 @@ public class StringUtils {
         if (StringUtils.isEmpty(input)) {
             return false;
         }
-        Pattern pattern = Pattern.compile("^[1-9]\\d{4,8}$");
-        return pattern.matcher(input).matches();
+
+        return IS_QQ_PATTERN.matcher(input).matches();
     }
 
     /**

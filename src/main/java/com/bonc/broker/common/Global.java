@@ -9,9 +9,13 @@ import java.util.HashSet;
 public class Global {
 	public static final String MYSQL = "mysql";
 	public static final String REDIS = "redis";
+	public static final String BCM_NGINX_URL = "/component/service?serviceName=";
 
 	public static final String TRUE = "true";
 
+	public static final String CREATE_WORKER="CreateWorker";
+	public static final String UPDATE_WORKER="UpdateWorker";
+	public static final String DELETE_WORKER="DeleteWorker";
 
 	public static final String SERVICE_ID_MYSQL = "8780d398-a010-4696-bb0d-78ea6511fa95";
 	public static final String PLAN_ID_MYSQL_MS = "aee3dab8-8cf9-4d3a-a2fd-f8155e56750e";
@@ -34,7 +38,6 @@ public class Global {
 	public static final HashSet<String> PLAN_ID_REDIS = new HashSet<String>() {{
 		add(PLAN_ID_REDIS_SINGLE);
 		add(PLAN_ID_REDIS_MS);
-		add(PLAN_ID_REDIS_MS_SENTINEL);
 	}};
 
 
@@ -130,7 +133,17 @@ public class Global {
 
 			put(Global.PLAN_ID_REDIS_SINGLE, RedisClusterConst.REDIS_TYPE_SINGLE);
 			put(Global.PLAN_ID_REDIS_MS, RedisClusterConst.REDIS_TYPE_MS);
-			put(Global.PLAN_ID_REDIS_MS_SENTINEL, RedisClusterConst.REDIS_TYPE_MS_SENTINEL);
 		}
 	};
+
+	/**
+	 *  serviceId 与 跟catalog的对应关系
+	 */
+	public static final HashMap<String, String> SERVICE_ID_CATALOG = new HashMap<String, String>() {
+		{
+			put(Global.SERVICE_ID_MYSQL, AppTypeConst.APPTYPE_MYSQL);
+			put(Global.SERVICE_ID_REDIS, AppTypeConst.APPTYPE_REDIS);
+		}
+	};
+
 }
